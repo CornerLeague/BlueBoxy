@@ -32,21 +32,25 @@ export default function Onboarding() {
 
   const createUserMutation = useMutation({
     mutationFn: async (userData: UserForm) => {
-      const response = await apiRequest("POST", "/api/users", userData);
+      const response = await apiRequest("POST", "/api/auth/register", {
+        ...userData,
+        password: "password123" // Default password for demo
+      });
       return response.json();
     },
-    onSuccess: (user) => {
-      localStorage.setItem("userId", user.id.toString());
+    onSuccess: (data) => {
+      localStorage.setItem("userId", data.user.id.toString());
+      localStorage.setItem("authToken", data.token);
       toast({
         title: "Welcome to BlueBoxy!",
         description: "Let's get to know your partner better.",
       });
       setLocation("/assessment");
     },
-    onError: () => {
+    onError: (error: any) => {
       toast({
         title: "Error",
-        description: "Failed to create account. Please try again.",
+        description: error.message || "Failed to create account. Please try again.",
         variant: "destructive",
       });
     },

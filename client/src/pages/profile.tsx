@@ -10,7 +10,7 @@ export default function Profile() {
   const userId = localStorage.getItem("userId");
 
   const { data: user } = useQuery({
-    queryKey: [`/api/users/${userId}`],
+    queryKey: [`/api/user/profile`],
     enabled: !!userId,
   });
 
