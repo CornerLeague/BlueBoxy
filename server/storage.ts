@@ -15,6 +15,8 @@ import {
   type ScheduledEvent,
   type InsertScheduledEvent
 } from "@shared/schema";
+import { db } from "./db";
+import { eq, and } from "drizzle-orm";
 
 export interface IStorage {
   // User management
@@ -264,4 +266,120 @@ export class MemStorage implements IStorage {
   }
 }
 
-export const storage = new MemStorage();
+export class DatabaseStorage implements IStorage {
+  async getUser(id: number): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user || undefined;
+  }
+
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.email, email));
+    return user || undefined;
+  }
+
+  async createUser(insertUser: InsertUser): Promise<User> {
+    const [user] = await db
+      .insert(users)
+      .values(insertUser)
+      .returning();
+    return user;
+  }
+
+  async updateUser(id: number, updates: Partial<InsertUser>): Promise<User> {
+    const [user] = await db
+      .update(users)
+      .set(updates)
+      .where(eq(users.id, id))
+      .returning();
+    return user;
+  }
+
+  async saveAssessmentResponse(response: InsertAssessmentResponse): Promise<AssessmentResponse> {
+    const [assessmentResponse] = await db
+      .insert(assessmentResponses)
+      .values(response)
+      .returning();
+    return assessmentResponse;
+  }
+
+  async getAssessmentByUserId(userId: number): Promise<AssessmentResponse | undefined> {
+    const [assessment] = await db
+      .select()
+      .from(assessmentResponses)
+      .where(eq(assessmentResponses.userId, userId));
+    return assessment || undefined;
+  }
+
+  async getRecommendationsByUserId(userId: number): Promise<Recommendation[]> {
+    return await db
+      .select()
+      .from(recommendations)
+      .where(and(eq(recommendations.userId, userId), eq(recommendations.isActive, true)));
+  }
+
+  async createRecommendation(recommendation: InsertRecommendation): Promise<Recommendation> {
+    const [newRecommendation] = await db
+      .insert(recommendations)
+      .values(recommendation)
+      .returning();
+    return newRecommendation;
+  }
+
+  async updateRecommendation(id: number, updates: Partial<InsertRecommendation>): Promise<Recommendation> {
+    const [updatedRecommendation] = await db
+      .update(recommendations)
+      .set(updates)
+      .where(eq(recommendations.id, id))
+      .returning();
+    return updatedRecommendation;
+  }
+
+  async getActivities(): Promise<Activity[]> {
+    return await db.select().from(activities);
+  }
+
+  async getActivitiesByPersonality(personalityType: string): Promise<Activity[]> {
+    return await db
+      .select()
+      .from(activities)
+      .where(eq(activities.personalityMatch, personalityType));
+  }
+
+  async createActivity(activity: InsertActivity): Promise<Activity> {
+    const [newActivity] = await db
+      .insert(activities)
+      .values(activity)
+      .returning();
+    return newActivity;
+  }
+
+  async getEventsByUserId(userId: number): Promise<ScheduledEvent[]> {
+    return await db
+      .select()
+      .from(scheduledEvents)
+      .where(eq(scheduledEvents.userId, userId));
+  }
+
+  async createEvent(event: InsertScheduledEvent): Promise<ScheduledEvent> {
+    const [newEvent] = await db
+      .insert(scheduledEvents)
+      .values(event)
+      .returning();
+    return newEvent;
+  }
+
+  async updateEvent(id: number, updates: Partial<InsertScheduledEvent>): Promise<ScheduledEvent> {
+    const [updatedEvent] = await db
+      .update(scheduledEvents)
+      .set(updates)
+      .where(eq(scheduledEvents.id, id))
+      .returning();
+    return updatedEvent;
+  }
+
+  async deleteEvent(id: number): Promise<void> {
+    await db.delete(scheduledEvents).where(eq(scheduledEvents.id, id));
+  }
+}
+
+export const storage = new DatabaseStorage();

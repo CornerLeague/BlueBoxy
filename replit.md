@@ -10,12 +10,12 @@ BlueBoxy is a modern relationship management application built with React and Ex
 - **Router**: Wouter for client-side routing
 - **State Management**: TanStack Query for server state and local storage for user sessions
 - **UI Framework**: Radix UI components with Tailwind CSS
-- **Styling**: Tailwind CSS with custom CSS variables for theming
+- **Styling**: Tailwind CSS with glassmorphism effects and dark theme
 - **Build Tool**: Vite for development and production builds
 
 ### Backend Architecture
 - **Framework**: Express.js with TypeScript
-- **Database**: PostgreSQL with Drizzle ORM
+- **Database**: PostgreSQL with Drizzle ORM (DatabaseStorage implementation)
 - **Database Provider**: Neon Database (@neondatabase/serverless)
 - **Session Management**: Express sessions with PostgreSQL storage
 - **API Pattern**: RESTful API with JSON responses
@@ -130,3 +130,5 @@ Preferred communication style: Simple, everyday language.
 
 Changelog:
 - July 08, 2025. Initial setup
+- July 08, 2025. Enhanced UI with glassmorphism effects and modern dark theme design
+- July 08, 2025. Added PostgreSQL database with Drizzle ORM, replacing in-memory storage

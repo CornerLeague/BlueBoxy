@@ -1,4 +1,5 @@
-import { pgTable, text, serial, integer, boolean, jsonb, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, jsonb, timestamp, real } from "drizzle-orm/pg-core";
+import { relations } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -39,7 +40,7 @@ export const activities = pgTable("activities", {
   description: text("description").notNull(),
   category: text("category").notNull(),
   location: text("location"),
-  rating: integer("rating"),
+  rating: real("rating"),
   distance: text("distance"),
   personalityMatch: text("personality_match"),
   imageUrl: text("image_url"),
@@ -79,6 +80,34 @@ export const insertScheduledEventSchema = createInsertSchema(scheduledEvents).om
   id: true,
   createdAt: true,
 });
+
+// Relations
+export const usersRelations = relations(users, ({ many }) => ({
+  assessmentResponses: many(assessmentResponses),
+  recommendations: many(recommendations),
+  scheduledEvents: many(scheduledEvents),
+}));
+
+export const assessmentResponsesRelations = relations(assessmentResponses, ({ one }) => ({
+  user: one(users, {
+    fields: [assessmentResponses.userId],
+    references: [users.id],
+  }),
+}));
+
+export const recommendationsRelations = relations(recommendations, ({ one }) => ({
+  user: one(users, {
+    fields: [recommendations.userId],
+    references: [users.id],
+  }),
+}));
+
+export const scheduledEventsRelations = relations(scheduledEvents, ({ one }) => ({
+  user: one(users, {
+    fields: [scheduledEvents.userId],
+    references: [users.id],
+  }),
+}));
 
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
