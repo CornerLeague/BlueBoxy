@@ -1,145 +1,440 @@
-import type { Express } from "express";
-import { createServer, type Server } from "http";
+import { Express } from "express";
+import { createServer } from "http";
 import { storage } from "./storage";
-import { insertUserSchema, insertAssessmentResponseSchema, insertScheduledEventSchema } from "@shared/schema";
+import { 
+  insertUserSchema, 
+  insertPartnerSchema, 
+  insertPersonalityAssessmentSchema, 
+  insertRecommendationSchema,
+  insertNotificationSchema,
+  insertCalendarEventSchema
+} from "@shared/schema";
 import { z } from "zod";
+import bcrypt from "bcrypt";
+import jwt from "jsonwebtoken";
 
+const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key";
 
-export async function registerRoutes(app: Express): Promise<Server> {
-  // User routes
-  app.get("/api/users/:id", async (req, res) => {
+// Authentication middleware
+const authenticateToken = (req: any, res: any, next: any) => {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1];
+
+  if (!token) {
+    return res.status(401).json({ error: 'Access token required' });
+  }
+
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET) as any;
+    req.user = decoded;
+    next();
+  } catch (err) {
+    return res.status(403).json({ error: 'Invalid or expired token' });
+  }
+};
+
+export async function registerRoutes(app: Express) {
+  
+  // Authentication routes
+  app.post("/api/auth/register", async (req, res) => {
     try {
-      const id = parseInt(req.params.id);
-      const user = await storage.getUser(id);
-      if (!user) {
-        return res.status(404).json({ message: "User not found" });
-      }
-      res.json(user);
-    } catch (error) {
-      res.status(500).json({ message: "Internal server error" });
-    }
-  });
-
-  app.post("/api/users", async (req, res) => {
-    try {
-      const userData = insertUserSchema.parse(req.body);
-      const user = await storage.createUser(userData);
-      res.status(201).json(user);
-    } catch (error) {
-      res.status(400).json({ message: "Invalid user data" });
-    }
-  });
-
-  app.patch("/api/users/:id", async (req, res) => {
-    try {
-      const id = parseInt(req.params.id);
-      const updates = req.body;
-      const user = await storage.updateUser(id, updates);
-      res.json(user);
-    } catch (error) {
-      res.status(400).json({ message: "Failed to update user" });
-    }
-  });
-
-  // Assessment routes
-  app.post("/api/assessments", async (req, res) => {
-    try {
-      const assessmentData = insertAssessmentResponseSchema.parse(req.body);
-      const assessment = await storage.saveAssessmentResponse(assessmentData);
+      const { email, password, firstName, lastName, dateOfBirth, timezone } = req.body;
       
-      // Update user's assessment completion status
-      await storage.updateUser(assessmentData.userId!, {
-        assessmentCompleted: true,
-        personalityType: assessmentData.personalityType,
+      // Check if user already exists
+      const existingUser = await storage.getUserByEmail(email);
+      if (existingUser) {
+        return res.status(400).json({ error: "User already exists" });
+      }
+
+      // Hash password
+      const passwordHash = await bcrypt.hash(password, 10);
+
+      const userData = {
+        email,
+        passwordHash,
+        firstName,
+        lastName,
+        dateOfBirth,
+        timezone: timezone || "UTC",
+        privacySettings: {},
+        notificationPreferences: {
+          frequency: "moderate",
+          quietHours: { start: "22:00", end: "07:00" }
+        }
+      };
+
+      const user = await storage.createUser(userData);
+      
+      // Generate JWT token
+      const token = jwt.sign(
+        { userId: user.id, email: user.email },
+        JWT_SECRET,
+        { expiresIn: '24h' }
+      );
+
+      res.json({
+        user: {
+          id: user.id,
+          email: user.email,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          onboardingCompleted: user.onboardingCompleted
+        },
+        token
+      });
+    } catch (error) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/auth/login", async (req, res) => {
+    try {
+      const { email, password } = req.body;
+      
+      const user = await storage.getUserByEmail(email);
+      if (!user) {
+        return res.status(401).json({ error: "Invalid credentials" });
+      }
+
+      const isValidPassword = await bcrypt.compare(password, user.passwordHash);
+      if (!isValidPassword) {
+        return res.status(401).json({ error: "Invalid credentials" });
+      }
+
+      const token = jwt.sign(
+        { userId: user.id, email: user.email },
+        JWT_SECRET,
+        { expiresIn: '24h' }
+      );
+
+      res.json({
+        user: {
+          id: user.id,
+          email: user.email,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          onboardingCompleted: user.onboardingCompleted
+        },
+        token
+      });
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // User profile routes
+  app.get("/api/user/profile", authenticateToken, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.userId);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+      
+      // Get partner information
+      const partner = await storage.getPartnerByUserId(req.user.userId);
+      
+      res.json({
+        ...user,
+        partner: partner || null
+      });
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.put("/api/user/profile", authenticateToken, async (req: any, res) => {
+    try {
+      const updates = req.body;
+      const user = await storage.updateUser(req.user.userId, updates);
+      res.json(user);
+    } catch (error) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  // Partner management routes
+  app.post("/api/partner", authenticateToken, async (req: any, res) => {
+    try {
+      const partnerData = {
+        ...req.body,
+        userId: req.user.userId
+      };
+      
+      const partner = await storage.createPartner(partnerData);
+      res.json(partner);
+    } catch (error) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  app.put("/api/partner/:id", authenticateToken, async (req: any, res) => {
+    try {
+      const partner = await storage.updatePartner(req.params.id, req.body);
+      res.json(partner);
+    } catch (error) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  // Personality assessment routes
+  app.get("/api/assessment/questions", (req, res) => {
+    const questions = [
+      {
+        id: "q1",
+        question: "When planning a surprise for your partner, you prefer to:",
+        options: [
+          { id: "a", text: "Plan every detail meticulously" },
+          { id: "b", text: "Keep it simple and spontaneous" },
+          { id: "c", text: "Ask subtle questions to understand their preferences" },
+          { id: "d", text: "Go with something you know they've mentioned before" }
+        ]
+      },
+      {
+        id: "q2", 
+        question: "During disagreements, you tend to:",
+        options: [
+          { id: "a", text: "Address the issue directly and immediately" },
+          { id: "b", text: "Take time to think before discussing" },
+          { id: "c", text: "Focus on understanding their perspective first" },
+          { id: "d", text: "Try to find a compromise quickly" }
+        ]
+      },
+      {
+        id: "q3",
+        question: "Your ideal date night would involve:",
+        options: [
+          { id: "a", text: "Trying a new restaurant or activity" },
+          { id: "b", text: "Staying in and enjoying each other's company" },
+          { id: "c", text: "Doing something your partner loves" },
+          { id: "d", text: "A balance of planned and spontaneous activities" }
+        ]
+      }
+    ];
+
+    res.json({ questions });
+  });
+
+  app.post("/api/assessment/responses", authenticateToken, async (req: any, res) => {
+    try {
+      const { responses, assessmentType } = req.body;
+      
+      // Calculate personality scores
+      const scores = calculatePersonalityScores(responses);
+      const personalityType = determinePersonalityType(scores);
+      
+      const assessmentData = {
+        userId: req.user.userId,
+        partnerId: null,
+        assessmentType: assessmentType || "user",
+        questionsResponses: responses,
+        connectionStyleScore: scores.connectionStyle.toString(),
+        motivationDriverScore: scores.motivationDriver.toString(),
+        affectionLanguageScore: scores.affectionLanguage.toString(),
+        personalityType,
+        confidenceScore: scores.confidence.toString(),
+        assessmentVersion: "1.0"
+      };
+
+      const assessment = await storage.savePersonalityAssessment(assessmentData);
+      
+      // Update user's personality type and onboarding status
+      await storage.updateUser(req.user.userId, {
+        personalityType,
+        onboardingCompleted: true
       });
 
-      // Generate initial recommendations
-      await generateRecommendations(assessmentData.userId!, assessmentData.personalityType);
-
-      res.status(201).json(assessment);
-    } catch (error) {
-      res.status(400).json({ message: "Invalid assessment data" });
-    }
-  });
-
-  app.get("/api/assessments/user/:userId", async (req, res) => {
-    try {
-      const userId = parseInt(req.params.userId);
-      const assessment = await storage.getAssessmentByUserId(userId);
       res.json(assessment);
     } catch (error) {
-      res.status(500).json({ message: "Failed to get assessment" });
+      res.status(400).json({ error: error.message });
     }
   });
 
-  // Recommendations routes
-  app.get("/api/recommendations/user/:userId", async (req, res) => {
+  app.get("/api/assessment/results/:assessmentId", authenticateToken, async (req: any, res) => {
     try {
-      const userId = parseInt(req.params.userId);
-      const recommendations = await storage.getRecommendationsByUserId(userId);
-      res.json(recommendations);
+      const assessment = await storage.getPersonalityAssessmentByUserId(req.user.userId);
+      if (!assessment) {
+        return res.status(404).json({ error: "Assessment not found" });
+      }
+      res.json(assessment);
     } catch (error) {
-      res.status(500).json({ message: "Failed to get recommendations" });
+      res.status(500).json({ error: error.message });
     }
   });
 
-  // Activities routes
-  app.get("/api/activities", async (req, res) => {
+  // AI Recommendation routes
+  app.get("/api/recommendations/messages", authenticateToken, async (req: any, res) => {
     try {
-      const { personality } = req.query;
-      let activities;
+      const { messageType, context, timeOfDay } = req.query;
       
-      if (personality) {
-        activities = await storage.getActivitiesByPersonality(personality as string);
-      } else {
-        activities = await storage.getActivities();
+      const user = await storage.getUser(req.user.userId);
+      const partner = await storage.getPartnerByUserId(req.user.userId);
+      
+      const messages = await generateMessageRecommendations(user, partner, {
+        messageType,
+        context,
+        timeOfDay
+      });
+      
+      res.json({ messages });
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/recommendations/activities", authenticateToken, async (req: any, res) => {
+    try {
+      const { location, budget, timeframe, activityType } = req.query;
+      
+      const user = await storage.getUser(req.user.userId);
+      const activities = await generateActivityRecommendations(user, {
+        location,
+        budget,
+        timeframe,
+        activityType
+      });
+      
+      res.json({ activities });
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/recommendations/gifts", authenticateToken, async (req: any, res) => {
+    try {
+      const { occasion, budget, giftType } = req.query;
+      
+      const user = await storage.getUser(req.user.userId);
+      const partner = await storage.getPartnerByUserId(req.user.userId);
+      
+      const gifts = await generateGiftRecommendations(user, partner, {
+        occasion,
+        budget,
+        giftType
+      });
+      
+      res.json({ gifts });
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/recommendations/feedback", authenticateToken, async (req: any, res) => {
+    try {
+      const { recommendationId, action, outcome, partnerResponse, notes } = req.body;
+      
+      const feedback = {
+        action,
+        outcome,
+        partnerResponse,
+        notes,
+        timestamp: new Date().toISOString()
+      };
+      
+      await storage.updateRecommendation(recommendationId, {
+        feedback,
+        implementedAt: action === "implemented" ? new Date() : null
+      });
+      
+      res.json({ success: true });
+    } catch (error) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  // Notification routes
+  app.post("/api/notifications/schedule", authenticateToken, async (req: any, res) => {
+    try {
+      const notificationData = {
+        ...req.body,
+        userId: req.user.userId
+      };
+      
+      const notification = await storage.createNotification(notificationData);
+      res.json(notification);
+    } catch (error) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/notifications/pending", authenticateToken, async (req: any, res) => {
+    try {
+      const notifications = await storage.getNotificationsByUserId(req.user.userId);
+      const pending = notifications.filter(n => n.status === "pending");
+      res.json({ notifications: pending });
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/notifications/acknowledge", authenticateToken, async (req: any, res) => {
+    try {
+      const { notificationId, action, snoozeUntil } = req.body;
+      
+      const updates: any = {
+        status: action === "snoozed" ? "snoozed" : "delivered",
+        readAt: new Date()
+      };
+      
+      if (snoozeUntil) {
+        updates.scheduledFor = new Date(snoozeUntil);
+        updates.status = "pending";
       }
       
-      res.json(activities);
+      await storage.updateNotification(notificationId, updates);
+      res.json({ success: true });
     } catch (error) {
-      res.status(500).json({ message: "Failed to get activities" });
+      res.status(400).json({ error: error.message });
     }
   });
 
-  // Events routes
-  app.get("/api/events/user/:userId", async (req, res) => {
+  // Calendar routes
+  app.get("/api/calendar/availability", authenticateToken, async (req: any, res) => {
     try {
-      const userId = parseInt(req.params.userId);
-      const events = await storage.getEventsByUserId(userId);
-      res.json(events);
+      const { dateRange, duration, activityType } = req.query;
+      
+      const events = await storage.getCalendarEventsByUserId(req.user.userId);
+      const availability = analyzeAvailability(events, {
+        dateRange,
+        duration,
+        activityType
+      });
+      
+      res.json({ availability });
     } catch (error) {
-      res.status(500).json({ message: "Failed to get events" });
+      res.status(500).json({ error: error.message });
     }
   });
 
-  app.post("/api/events", async (req, res) => {
+  app.post("/api/calendar/schedule", authenticateToken, async (req: any, res) => {
     try {
-      const eventData = insertScheduledEventSchema.parse(req.body);
-      const event = await storage.createEvent(eventData);
-      res.status(201).json(event);
-    } catch (error) {
-      res.status(400).json({ message: "Invalid event data" });
-    }
-  });
-
-  app.patch("/api/events/:id", async (req, res) => {
-    try {
-      const id = parseInt(req.params.id);
-      const updates = req.body;
-      const event = await storage.updateEvent(id, updates);
+      const eventData = {
+        ...req.body,
+        userId: req.user.userId
+      };
+      
+      const event = await storage.createCalendarEvent(eventData);
       res.json(event);
     } catch (error) {
-      res.status(400).json({ message: "Failed to update event" });
+      res.status(400).json({ error: error.message });
     }
   });
 
-  app.delete("/api/events/:id", async (req, res) => {
+  // Activity routes
+  app.get("/api/activities", async (req, res) => {
     try {
-      const id = parseInt(req.params.id);
-      await storage.deleteEvent(id);
-      res.status(204).send();
+      const activities = await storage.getActivities();
+      res.json(activities);
     } catch (error) {
-      res.status(400).json({ message: "Failed to delete event" });
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/activities/personality/:type", async (req, res) => {
+    try {
+      const activities = await storage.getActivitiesByPersonality(req.params.type);
+      res.json(activities);
+    } catch (error) {
+      res.status(500).json({ error: error.message });
     }
   });
 
@@ -147,39 +442,126 @@ export async function registerRoutes(app: Express): Promise<Server> {
   return httpServer;
 }
 
-// Recommendation engine
-async function generateRecommendations(userId: number, personalityType: string) {
-  const recommendations = [
-    {
-      userId,
-      type: "message",
-      category: "daily_checkin",
-      content: "Good morning beautiful! I know you have that big presentation today. You've got this - I believe in you completely! ☀️",
-      priority: "high",
-      personalityMatch: personalityType,
-      isActive: true,
-    },
-    {
-      userId,
-      type: "activity",
-      category: "date_idea",
-      content: "Cozy Garden Café - Perfect for meaningful conversations. Known for their artisanal coffee and peaceful atmosphere.",
-      priority: "medium",
-      personalityMatch: personalityType,
-      isActive: true,
-    },
-    {
-      userId,
-      type: "reminder",
-      category: "quality_time",
-      content: "Ask about her presentation today and really listen. She'll appreciate you remembering and caring about her day.",
-      priority: "high",
-      personalityMatch: personalityType,
-      isActive: true,
-    },
-  ];
+// Helper functions
+function calculatePersonalityScores(responses: any) {
+  // Simplified scoring algorithm
+  const scores = {
+    connectionStyle: 75.0,
+    motivationDriver: 80.0,
+    affectionLanguage: 70.0,
+    confidence: 85.0
+  };
+  
+  // In a real implementation, this would analyze actual responses
+  Object.keys(responses).forEach(questionId => {
+    const answer = responses[questionId];
+    // Adjust scores based on answers
+    if (answer === 'a') scores.connectionStyle += 5;
+    if (answer === 'b') scores.motivationDriver += 5;
+    if (answer === 'c') scores.affectionLanguage += 5;
+  });
+  
+  return scores;
+}
 
-  for (const rec of recommendations) {
-    await storage.createRecommendation(rec);
-  }
+function determinePersonalityType(scores: any): string {
+  const types = [
+    "Thoughtful Harmonizer",
+    "Practical Supporter", 
+    "Emotional Connector",
+    "Independent Thinker",
+    "Social Butterfly",
+    "Quiet Confidant",
+    "Adventure Seeker",
+    "Nurturing Caregiver"
+  ];
+  
+  // Select type based on highest scores
+  if (scores.connectionStyle > 80) return "Thoughtful Harmonizer";
+  if (scores.motivationDriver > 80) return "Practical Supporter";
+  if (scores.affectionLanguage > 80) return "Emotional Connector";
+  
+  return types[Math.floor(Math.random() * types.length)];
+}
+
+async function generateMessageRecommendations(user: any, partner: any, context: any) {
+  // AI-powered message generation would go here
+  const messages = [
+    {
+      content: "Good morning beautiful! Hope you have an amazing day ❤️",
+      timing: "morning",
+      personalityMatch: 95,
+      category: "affectionate"
+    },
+    {
+      content: "Thinking of you and can't wait to see you later!",
+      timing: "afternoon", 
+      personalityMatch: 88,
+      category: "romantic"
+    }
+  ];
+  
+  return messages;
+}
+
+async function generateActivityRecommendations(user: any, context: any) {
+  // Location-based activity recommendations
+  const activities = await storage.getActivitiesByPersonality(user?.personalityType || "Thoughtful Harmonizer");
+  
+  return activities.map(activity => ({
+    ...activity,
+    personalityMatch: 85,
+    estimatedCost: "$50-100",
+    bookingUrl: `https://example.com/book/${activity.id}`
+  }));
+}
+
+async function generateGiftRecommendations(user: any, partner: any, context: any) {
+  const gifts = [
+    {
+      name: "Personalized Photo Album",
+      description: "Custom photo book with your favorite memories together",
+      price: "$35-50",
+      category: "sentimental",
+      personalityMatch: 90,
+      purchaseUrl: "https://example.com/gifts/photo-album"
+    },
+    {
+      name: "Spa Day Package",
+      description: "Relaxing couples massage and spa experience",
+      price: "$150-300",
+      category: "experience",
+      personalityMatch: 75,
+      purchaseUrl: "https://example.com/gifts/spa-day"
+    }
+  ];
+  
+  return gifts;
+}
+
+function analyzeAvailability(events: any[], context: any) {
+  // Analyze calendar events to find optimal timing
+  const availability = {
+    optimalTimes: [
+      {
+        date: "2024-01-20",
+        startTime: "19:00",
+        endTime: "22:00",
+        confidence: 95
+      },
+      {
+        date: "2024-01-21", 
+        startTime: "14:00",
+        endTime: "17:00",
+        confidence: 80
+      }
+    ],
+    conflicts: [],
+    recommendations: [
+      "Weekend evenings work best for your schedule",
+      "Consider 2-3 hour blocks for optimal experience"
+    ]
+  };
+  
+  return availability;
 }
