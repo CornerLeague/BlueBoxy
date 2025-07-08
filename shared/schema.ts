@@ -4,26 +4,14 @@ import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
 export const users = pgTable("users", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  email: varchar("email", { length: 255 }).unique().notNull(),
-  passwordHash: varchar("password_hash", { length: 255 }).notNull(),
-  firstName: varchar("first_name", { length: 100 }).notNull(),
-  lastName: varchar("last_name", { length: 100 }).notNull(),
-  dateOfBirth: date("date_of_birth").notNull(),
-  timezone: varchar("timezone", { length: 50 }).notNull().default("UTC"),
-  pronouns: varchar("pronouns", { length: 20 }),
-  phoneNumber: varchar("phone_number", { length: 20 }),
-  profileImageUrl: text("profile_image_url"),
-  subscriptionTier: varchar("subscription_tier", { length: 20 }).default("free"),
-  subscriptionExpiresAt: timestamp("subscription_expires_at"),
-  emailVerified: boolean("email_verified").default(false),
-  phoneVerified: boolean("phone_verified").default(false),
-  onboardingCompleted: boolean("onboarding_completed").default(false),
-  privacySettings: jsonb("privacy_settings").default({}),
-  notificationPreferences: jsonb("notification_preferences").default({}),
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  email: text("email").notNull().unique(),
+  partnerName: text("partner_name"),
+  relationshipDuration: text("relationship_duration"),
+  assessmentCompleted: boolean("assessment_completed").default(false),
+  personalityType: text("personality_type"),
   createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
-  lastActiveAt: timestamp("last_active_at").defaultNow(),
 });
 
 export const partners = pgTable("partners", {

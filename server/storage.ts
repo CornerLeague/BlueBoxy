@@ -26,41 +26,15 @@ import { eq, and, desc, asc } from "drizzle-orm";
 
 export interface IStorage {
   // User management
-  getUser(id: string): Promise<User | undefined>;
+  getUser(id: number): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
-  updateUser(id: string, updates: Partial<InsertUser>): Promise<User>;
-  
-  // Partner management
-  getPartnerByUserId(userId: string): Promise<Partner | undefined>;
-  createPartner(partner: InsertPartner): Promise<Partner>;
-  updatePartner(id: string, updates: Partial<InsertPartner>): Promise<Partner>;
-  
-  // Personality assessment management
-  savePersonalityAssessment(assessment: InsertPersonalityAssessment): Promise<PersonalityAssessment>;
-  getPersonalityAssessmentByUserId(userId: string): Promise<PersonalityAssessment | undefined>;
-  getPersonalityAssessmentByPartnerId(partnerId: string): Promise<PersonalityAssessment | undefined>;
-  
-  // Recommendations
-  getRecommendationsByUserId(userId: string): Promise<Recommendation[]>;
-  createRecommendation(recommendation: InsertRecommendation): Promise<Recommendation>;
-  updateRecommendation(id: string, updates: Partial<InsertRecommendation>): Promise<Recommendation>;
+  updateUser(id: number, updates: Partial<InsertUser>): Promise<User>;
   
   // Activities
   getActivities(): Promise<Activity[]>;
   getActivitiesByPersonality(personalityType: string): Promise<Activity[]>;
   createActivity(activity: InsertActivity): Promise<Activity>;
-  
-  // Notifications
-  getNotificationsByUserId(userId: string): Promise<Notification[]>;
-  createNotification(notification: InsertNotification): Promise<Notification>;
-  updateNotification(id: string, updates: Partial<InsertNotification>): Promise<Notification>;
-  
-  // Calendar events
-  getCalendarEventsByUserId(userId: string): Promise<CalendarEvent[]>;
-  createCalendarEvent(event: InsertCalendarEvent): Promise<CalendarEvent>;
-  updateCalendarEvent(id: string, updates: Partial<InsertCalendarEvent>): Promise<CalendarEvent>;
-  deleteCalendarEvent(id: string): Promise<void>;
 }
 
 export class MemStorage implements IStorage {
@@ -284,7 +258,7 @@ export class MemStorage implements IStorage {
 }
 
 export class DatabaseStorage implements IStorage {
-  async getUser(id: string): Promise<User | undefined> {
+  async getUser(id: number): Promise<User | undefined> {
     try {
       const [user] = await db.select().from(users).where(eq(users.id, id));
       return user || undefined;
@@ -312,86 +286,13 @@ export class DatabaseStorage implements IStorage {
     return user;
   }
 
-  async updateUser(id: string, updates: Partial<InsertUser>): Promise<User> {
+  async updateUser(id: number, updates: Partial<InsertUser>): Promise<User> {
     const [user] = await db
       .update(users)
       .set(updates)
       .where(eq(users.id, id))
       .returning();
     return user;
-  }
-
-  async getPartnerByUserId(userId: string): Promise<Partner | undefined> {
-    const [partner] = await db
-      .select()
-      .from(partners)
-      .where(eq(partners.userId, userId));
-    return partner || undefined;
-  }
-
-  async createPartner(partner: InsertPartner): Promise<Partner> {
-    const [newPartner] = await db
-      .insert(partners)
-      .values(partner)
-      .returning();
-    return newPartner;
-  }
-
-  async updatePartner(id: string, updates: Partial<InsertPartner>): Promise<Partner> {
-    const [updatedPartner] = await db
-      .update(partners)
-      .set(updates)
-      .where(eq(partners.id, id))
-      .returning();
-    return updatedPartner;
-  }
-
-  async savePersonalityAssessment(assessment: InsertPersonalityAssessment): Promise<PersonalityAssessment> {
-    const [personalityAssessment] = await db
-      .insert(personalityAssessments)
-      .values(assessment)
-      .returning();
-    return personalityAssessment;
-  }
-
-  async getPersonalityAssessmentByUserId(userId: string): Promise<PersonalityAssessment | undefined> {
-    const [assessment] = await db
-      .select()
-      .from(personalityAssessments)
-      .where(eq(personalityAssessments.userId, userId));
-    return assessment || undefined;
-  }
-
-  async getPersonalityAssessmentByPartnerId(partnerId: string): Promise<PersonalityAssessment | undefined> {
-    const [assessment] = await db
-      .select()
-      .from(personalityAssessments)
-      .where(eq(personalityAssessments.partnerId, partnerId));
-    return assessment || undefined;
-  }
-
-  async getRecommendationsByUserId(userId: string): Promise<Recommendation[]> {
-    return await db
-      .select()
-      .from(recommendations)
-      .where(and(eq(recommendations.userId, userId), eq(recommendations.status, "active")));
-  }
-
-  async createRecommendation(recommendation: InsertRecommendation): Promise<Recommendation> {
-    const [newRecommendation] = await db
-      .insert(recommendations)
-      .values(recommendation)
-      .returning();
-    return newRecommendation;
-  }
-
-  async updateRecommendation(id: string, updates: Partial<InsertRecommendation>): Promise<Recommendation> {
-    const [updatedRecommendation] = await db
-      .update(recommendations)
-      .set(updates)
-      .where(eq(recommendations.id, id))
-      .returning();
-    return updatedRecommendation;
   }
 
   async getActivities(): Promise<Activity[]> {
@@ -417,60 +318,6 @@ export class DatabaseStorage implements IStorage {
       .returning();
     return newActivity;
   }
-
-  async getNotificationsByUserId(userId: string): Promise<Notification[]> {
-    return await db
-      .select()
-      .from(notifications)
-      .where(eq(notifications.userId, userId))
-      .orderBy(desc(notifications.scheduledFor));
-  }
-
-  async createNotification(notification: InsertNotification): Promise<Notification> {
-    const [newNotification] = await db
-      .insert(notifications)
-      .values(notification)
-      .returning();
-    return newNotification;
-  }
-
-  async updateNotification(id: string, updates: Partial<InsertNotification>): Promise<Notification> {
-    const [updatedNotification] = await db
-      .update(notifications)
-      .set(updates)
-      .where(eq(notifications.id, id))
-      .returning();
-    return updatedNotification;
-  }
-
-  async getCalendarEventsByUserId(userId: string): Promise<CalendarEvent[]> {
-    return await db
-      .select()
-      .from(calendarEvents)
-      .where(eq(calendarEvents.userId, userId))
-      .orderBy(asc(calendarEvents.startTime));
-  }
-
-  async createCalendarEvent(event: InsertCalendarEvent): Promise<CalendarEvent> {
-    const [newEvent] = await db
-      .insert(calendarEvents)
-      .values(event)
-      .returning();
-    return newEvent;
-  }
-
-  async updateCalendarEvent(id: string, updates: Partial<InsertCalendarEvent>): Promise<CalendarEvent> {
-    const [updatedEvent] = await db
-      .update(calendarEvents)
-      .set(updates)
-      .where(eq(calendarEvents.id, id))
-      .returning();
-    return updatedEvent;
-  }
-
-  async deleteCalendarEvent(id: string): Promise<void> {
-    await db.delete(calendarEvents).where(eq(calendarEvents.id, id));
-  }
 }
 
-export const storage = new DatabaseStorage();
+export const storage = new MemStorage();
