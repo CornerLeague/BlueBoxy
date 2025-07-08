@@ -1,0 +1,144 @@
+import { useState } from "react";
+import { useLocation } from "wouter";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { ArrowLeft, Copy, Heart, Sun, Zap, Clock } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+
+const messageCategories = [
+  { id: "daily", label: "Daily Check-ins", active: true },
+  { id: "appreciation", label: "Appreciation", active: false },
+  { id: "support", label: "Support", active: false },
+  { id: "romantic", label: "Romantic", active: false },
+  { id: "playful", label: "Playful", active: false },
+];
+
+const sampleMessages = [
+  {
+    id: 1,
+    category: "daily",
+    title: "Morning Energy",
+    content: "Good morning, beautiful! I woke up thinking about your smile and how it brightens my entire day. Hope you have an amazing day ahead! ☀️💙",
+    personalityMatch: "Perfect for Harmonizers",
+    icon: Sun,
+    iconColor: "bg-gradient-to-br from-primary to-blue-400",
+  },
+  {
+    id: 2,
+    category: "support",
+    title: "Motivation Boost",
+    content: "You've been working so hard lately, and I'm incredibly proud of your dedication. Remember, you're capable of amazing things! I believe in you completely. 💪",
+    personalityMatch: "High Impact",
+    icon: Zap,
+    iconColor: "bg-gradient-to-br from-success to-green-400",
+  },
+  {
+    id: 3,
+    category: "daily",
+    title: "Thoughtful Check-in",
+    content: "How was your day, love? I've been thinking about you and would love to hear all about it when you have a moment. You're always on my mind. 💙",
+    personalityMatch: "Evening",
+    icon: Clock,
+    iconColor: "bg-gradient-to-br from-warning to-yellow-400",
+  },
+];
+
+export default function Messages() {
+  const [, setLocation] = useLocation();
+  const [activeCategory, setActiveCategory] = useState("daily");
+  const { toast } = useToast();
+
+  const handleCopyMessage = (message: string) => {
+    navigator.clipboard.writeText(message);
+    toast({
+      title: "Message copied!",
+      description: "The message has been copied to your clipboard.",
+    });
+  };
+
+  const filteredMessages = sampleMessages.filter(msg => msg.category === activeCategory);
+
+  return (
+    <div className="p-6 min-h-screen">
+      <div className="flex items-center mb-6">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => setLocation("/dashboard")}
+          className="mr-4 p-2 rounded-full bg-secondary"
+        >
+          <ArrowLeft className="w-5 h-5" />
+        </Button>
+        <h2 className="text-xl font-semibold">Thoughtful Messages</h2>
+      </div>
+      
+      {/* Categories */}
+      <div className="flex space-x-2 mb-6 overflow-x-auto">
+        {messageCategories.map((category) => (
+          <Button
+            key={category.id}
+            variant={activeCategory === category.id ? "default" : "outline"}
+            size="sm"
+            onClick={() => setActiveCategory(category.id)}
+            className={`px-4 py-2 rounded-full text-sm whitespace-nowrap ${
+              activeCategory === category.id 
+                ? "bg-primary text-white" 
+                : "bg-secondary text-muted-foreground"
+            }`}
+          >
+            {category.label}
+          </Button>
+        ))}
+      </div>
+      
+      {/* Message Cards */}
+      <div className="space-y-4">
+        {filteredMessages.map((message) => {
+          const IconComponent = message.icon;
+          return (
+            <Card key={message.id} className="bg-secondary rounded-xl">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center">
+                    <div className={`w-8 h-8 ${message.iconColor} rounded-full flex items-center justify-center mr-3`}>
+                      <IconComponent className="w-4 h-4 text-white" />
+                    </div>
+                    <span className="text-sm font-medium">{message.title}</span>
+                  </div>
+                  <span className="text-xs text-primary">{message.personalityMatch}</span>
+                </div>
+                <p className="text-foreground mb-4">{message.content}</p>
+                <div className="flex space-x-2">
+                  <Button
+                    onClick={() => handleCopyMessage(message.content)}
+                    className="flex-1 bg-primary text-white hover:bg-primary/90"
+                  >
+                    <Copy className="w-4 h-4 mr-2" />
+                    Copy Message
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="px-4 py-2 bg-muted"
+                  >
+                    <Heart className="w-4 h-4" />
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
+      
+      {filteredMessages.length === 0 && (
+        <div className="text-center py-12">
+          <MessageSquare className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+          <h3 className="text-lg font-semibold mb-2">No messages yet</h3>
+          <p className="text-muted-foreground">
+            Messages for this category will appear here once generated.
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}

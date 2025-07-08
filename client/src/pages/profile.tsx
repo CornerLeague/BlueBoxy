@@ -1,0 +1,190 @@
+import { useQuery } from "@tanstack/react-query";
+import { useLocation } from "wouter";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
+import { ArrowLeft, User, Edit, RefreshCw, Bell, Lock, ChevronRight } from "lucide-react";
+
+export default function Profile() {
+  const [, setLocation] = useLocation();
+  const userId = localStorage.getItem("userId");
+
+  const { data: user } = useQuery({
+    queryKey: [`/api/users/${userId}`],
+    enabled: !!userId,
+  });
+
+  const { data: assessment } = useQuery({
+    queryKey: [`/api/assessments/user/${userId}`],
+    enabled: !!userId,
+  });
+
+  if (!user) {
+    return (
+      <div className="p-6 min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading profile...</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="p-6 min-h-screen">
+      <div className="flex items-center mb-6">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => setLocation("/dashboard")}
+          className="mr-4 p-2 rounded-full bg-secondary"
+        >
+          <ArrowLeft className="w-5 h-5" />
+        </Button>
+        <h2 className="text-xl font-semibold">Profile</h2>
+      </div>
+      
+      {/* User Profile */}
+      <Card className="p-6 mb-6">
+        <CardContent className="p-0">
+          <div className="flex items-center mb-4">
+            <div className="w-16 h-16 bg-gradient-to-br from-primary to-blue-400 rounded-full flex items-center justify-center mr-4">
+              <User className="w-8 h-8 text-white" />
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold">{user.name}</h3>
+              <p className="text-muted-foreground">In a relationship for {user.relationshipDuration}</p>
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-2 gap-4">
+            <div className="text-center">
+              <div className="text-2xl font-bold text-primary">156</div>
+              <div className="text-muted-foreground text-sm">Messages Sent</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-success">24</div>
+              <div className="text-muted-foreground text-sm">Dates Planned</div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+      
+      {/* Partner Profile */}
+      <Card className="p-6 mb-6">
+        <CardContent className="p-0">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold">{user.partnerName}'s Profile</h3>
+            <Button variant="ghost" size="sm" className="text-primary">
+              <Edit className="w-4 h-4 mr-1" />
+              Edit
+            </Button>
+          </div>
+          
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <span className="text-muted-foreground">Personality Type</span>
+              <span className="text-primary font-semibold">{user.personalityType || "Thoughtful Harmonizer"}</span>
+            </div>
+            
+            <div className="flex items-center justify-between">
+              <span className="text-muted-foreground">Love Language</span>
+              <span>Quality Time</span>
+            </div>
+            
+            <div className="flex items-center justify-between">
+              <span className="text-muted-foreground">Preferred Communication</span>
+              <span>Evening check-ins</span>
+            </div>
+            
+            <div className="flex items-center justify-between">
+              <span className="text-muted-foreground">Stress Response</span>
+              <span>Needs processing time</span>
+            </div>
+          </div>
+          
+          {/* Personality Insights */}
+          <div className="mt-6 p-4 bg-background rounded-xl border border-border">
+            <h4 className="font-semibold mb-2">Key Insights</h4>
+            <ul className="text-muted-foreground text-sm space-y-1">
+              <li>• Appreciates thoughtful gestures over grand displays</li>
+              <li>• Values deep, meaningful conversations</li>
+              <li>• Prefers peaceful, intimate settings</li>
+              <li>• Responds well to emotional support</li>
+            </ul>
+          </div>
+        </CardContent>
+      </Card>
+      
+      {/* Relationship Analytics */}
+      <Card className="p-6 mb-6">
+        <CardContent className="p-0">
+          <h3 className="text-lg font-semibold mb-4">Relationship Analytics</h3>
+          
+          <div className="space-y-4">
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-muted-foreground">Communication Score</span>
+                <span className="font-semibold">85%</span>
+              </div>
+              <Progress value={85} className="w-full" />
+            </div>
+            
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-muted-foreground">Thoughtfulness Index</span>
+                <span className="font-semibold">92%</span>
+              </div>
+              <Progress value={92} className="w-full" />
+            </div>
+            
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-muted-foreground">Quality Time</span>
+                <span className="font-semibold">78%</span>
+              </div>
+              <Progress value={78} className="w-full" />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+      
+      {/* Settings */}
+      <div className="space-y-3">
+        <Button 
+          variant="outline"
+          className="w-full bg-secondary p-4 rounded-xl flex items-center justify-between"
+          onClick={() => setLocation("/assessment")}
+        >
+          <div className="flex items-center">
+            <RefreshCw className="w-5 h-5 mr-3" />
+            <span>Retake Assessment</span>
+          </div>
+          <ChevronRight className="w-5 h-5 text-muted-foreground" />
+        </Button>
+        
+        <Button 
+          variant="outline"
+          className="w-full bg-secondary p-4 rounded-xl flex items-center justify-between"
+        >
+          <div className="flex items-center">
+            <Bell className="w-5 h-5 mr-3" />
+            <span>Notification Settings</span>
+          </div>
+          <ChevronRight className="w-5 h-5 text-muted-foreground" />
+        </Button>
+        
+        <Button 
+          variant="outline"
+          className="w-full bg-secondary p-4 rounded-xl flex items-center justify-between"
+        >
+          <div className="flex items-center">
+            <Lock className="w-5 h-5 mr-3" />
+            <span>Privacy & Security</span>
+          </div>
+          <ChevronRight className="w-5 h-5 text-muted-foreground" />
+        </Button>
+      </div>
+    </div>
+  );
+}
