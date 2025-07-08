@@ -236,6 +236,35 @@ export async function registerRoutes(app: Express) {
     }
   });
 
+  // Legacy endpoint for backwards compatibility
+  app.post("/api/assessments", authenticateToken, async (req: any, res) => {
+    try {
+      const { responses, assessmentType } = req.body;
+      
+      // Calculate personality scores
+      const scores = calculatePersonalityScores(responses);
+      const personalityType = determinePersonalityType(scores);
+      
+      const assessmentData = {
+        userId: req.user.userId,
+        responses,
+        personalityType
+      };
+
+      const assessment = await storage.saveAssessmentResponse(assessmentData);
+      
+      // Update user's personality type and assessment status
+      await storage.updateUser(req.user.userId, {
+        personalityType,
+        assessmentCompleted: true
+      });
+
+      res.json(assessment);
+    } catch (error) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
   app.get("/api/assessment/results/:assessmentId", authenticateToken, async (req: any, res) => {
     try {
       const assessment = await storage.getAssessmentByUserId(req.user.userId);

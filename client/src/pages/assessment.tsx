@@ -74,7 +74,7 @@ export default function Assessment() {
 
   const saveAssessmentMutation = useMutation({
     mutationFn: async (assessmentData: any) => {
-      const response = await apiRequest("POST", "/api/assessments", assessmentData);
+      const response = await apiRequest("POST", "/api/assessment/responses", assessmentData);
       return response.json();
     },
     onSuccess: () => {
@@ -105,11 +105,9 @@ export default function Assessment() {
       setCurrentQuestion(prev => prev + 1);
     } else {
       // Complete assessment
-      const personalityType = determinePersonalityType(responses);
       saveAssessmentMutation.mutate({
-        userId: parseInt(userId!),
         responses,
-        personalityType,
+        assessmentType: "user"
       });
     }
   };
