@@ -183,6 +183,47 @@ export class MemStorage implements IStorage {
     return newRecommendation;
   }
 
+  async generateSampleRecommendations(userId: number, personalityType: string): Promise<void> {
+    const sampleRecommendations = [
+      {
+        userId,
+        type: "message",
+        category: "morning",
+        content: "Good morning, beautiful! I hope your day is as amazing as you are. Can't wait to see you tonight! 💕",
+        priority: "medium",
+        personalityMatch: personalityType
+      },
+      {
+        userId,
+        type: "message",
+        category: "appreciation",
+        content: "I was just thinking about how lucky I am to have you in my life. Thank you for being so supportive and understanding.",
+        priority: "high",
+        personalityMatch: personalityType
+      },
+      {
+        userId,
+        type: "activity",
+        category: "date",
+        content: "Plan a cozy movie night at home with their favorite snacks and a film you both want to watch.",
+        priority: "medium",
+        personalityMatch: personalityType
+      },
+      {
+        userId,
+        type: "message",
+        category: "support",
+        content: "I know you've been working hard lately. Remember to take care of yourself - you're amazing and I believe in you!",
+        priority: "high",
+        personalityMatch: personalityType
+      }
+    ];
+
+    for (const rec of sampleRecommendations) {
+      await this.createRecommendation(rec as InsertRecommendation);
+    }
+  }
+
   async updateRecommendation(id: number, updates: Partial<InsertRecommendation>): Promise<Recommendation> {
     const recommendation = this.recommendations.get(id);
     if (!recommendation) {

@@ -13,12 +13,12 @@ export default function Dashboard() {
   const userId = localStorage.getItem("userId");
 
   const { data: user } = useQuery({
-    queryKey: [`/api/users/${userId}`],
+    queryKey: [`/api/user/profile`],
     enabled: !!userId,
   });
 
   const { data: recommendations = [] } = useQuery({
-    queryKey: [`/api/recommendations/user/${userId}`],
+    queryKey: [`/api/recommendations/messages`],
     enabled: !!userId,
   });
 

@@ -136,6 +136,20 @@ export async function registerRoutes(app: Express) {
     }
   });
 
+  // Legacy endpoint for backwards compatibility
+  app.get("/api/users/:userId", authenticateToken, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(parseInt(req.user.userId));
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+      
+      res.json(user);
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   app.put("/api/user/profile", authenticateToken, async (req: any, res) => {
     try {
       const updates = req.body;
@@ -230,6 +244,9 @@ export async function registerRoutes(app: Express) {
         assessmentCompleted: true
       });
 
+      // Generate sample recommendations for the user
+      await storage.generateSampleRecommendations(req.user.userId, personalityType);
+
       res.json(assessment);
     } catch (error) {
       res.status(400).json({ error: error.message });
@@ -283,15 +300,19 @@ export async function registerRoutes(app: Express) {
       const { messageType, context, timeOfDay } = req.query;
       
       const user = await storage.getUser(req.user.userId);
-      const partner = await storage.getPartnerByUserId(req.user.userId);
+      const recommendations = await storage.getRecommendationsByUserId(req.user.userId);
       
-      const messages = await generateMessageRecommendations(user, partner, {
-        messageType,
-        context,
-        timeOfDay
-      });
-      
-      res.json({ messages });
+      res.json(recommendations);
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Legacy endpoint for backwards compatibility
+  app.get("/api/recommendations/user/:userId", authenticateToken, async (req: any, res) => {
+    try {
+      const recommendations = await storage.getRecommendationsByUserId(req.user.userId);
+      res.json(recommendations);
     } catch (error) {
       res.status(500).json({ error: error.message });
     }
