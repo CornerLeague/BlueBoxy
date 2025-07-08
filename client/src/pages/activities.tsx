@@ -36,7 +36,7 @@ export default function Activities() {
   });
 
   return (
-    <div className="p-6 min-h-screen">
+    <div className="p-6 min-h-screen pb-24">
       <div className="flex items-center mb-6">
         <Button
           variant="ghost"
@@ -50,24 +50,22 @@ export default function Activities() {
       </div>
       
       {/* Location Status */}
-      <Card className="p-4 mb-6">
-        <CardContent className="p-0">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center">
-              <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center mr-3">
-                <MapPin className="w-4 h-4 text-white" />
-              </div>
-              <div>
-                <h3 className="font-semibold text-sm">San Francisco, CA</h3>
-                <p className="text-muted-foreground text-xs">{activities.length} recommendations nearby</p>
-              </div>
+      <div className="glass-card rounded-2xl p-4 mb-6">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center">
+            <div className="w-8 h-8 bg-gradient-to-br from-primary to-blue-500 rounded-full flex items-center justify-center mr-3 shadow-lg">
+              <MapPin className="w-4 h-4 text-white" />
             </div>
-            <Button variant="ghost" size="sm" className="text-primary">
-              Change
-            </Button>
+            <div>
+              <h3 className="font-semibold text-sm">San Francisco, CA</h3>
+              <p className="text-muted-foreground text-xs">{activities.length} recommendations nearby</p>
+            </div>
           </div>
-        </CardContent>
-      </Card>
+          <button className="control-btn px-3 py-1 rounded-lg text-primary text-sm font-medium">
+            Change
+          </button>
+        </div>
+      </div>
       
       {/* Activity Categories */}
       <div className="flex space-x-2 mb-6 overflow-x-auto">
@@ -97,44 +95,40 @@ export default function Activities() {
           </div>
         ) : (
           filteredActivities.map((activity: any) => (
-            <Card key={activity.id} className="activity-card">
-              <div className="aspect-video bg-muted flex items-center justify-center">
+            <div key={activity.id} className="glass-card rounded-2xl overflow-hidden">
+              <div className="aspect-video bg-gradient-to-br from-gray-800 to-gray-900 flex items-center justify-center">
                 <img 
                   src={activity.imageUrl} 
                   alt={activity.name}
                   className="w-full h-full object-cover"
                 />
               </div>
-              <CardContent className="p-4">
+              <div className="p-4">
                 <div className="flex items-center justify-between mb-2">
                   <h3 className="font-semibold">{activity.name}</h3>
                   <div className="flex items-center">
                     <Star className="w-4 h-4 text-warning mr-1" fill="currentColor" />
-                    <span className="text-sm">{activity.rating}</span>
+                    <span className="text-sm font-medium">{activity.rating}</span>
                   </div>
                 </div>
-                <p className="text-muted-foreground text-sm mb-3">{activity.description}</p>
+                <p className="text-muted-foreground text-sm mb-3 leading-relaxed">{activity.description}</p>
                 <div className="flex items-center justify-between mb-4">
-                  <span className="text-success text-sm">{activity.personalityMatch}</span>
+                  <span className="text-success text-sm font-medium">{activity.personalityMatch}</span>
                   <span className="text-muted-foreground text-sm">{activity.distance}</span>
                 </div>
                 <div className="flex space-x-2">
-                  <Button
+                  <button
                     onClick={() => handleScheduleDate(activity.name)}
-                    className="flex-1 bg-primary text-white hover:bg-primary/90"
+                    className="flex-1 bg-gradient-to-r from-primary to-blue-500 text-white hover:from-primary/90 hover:to-blue-500/90 px-4 py-2 rounded-xl font-medium shadow-lg transition-all duration-200"
                   >
                     Schedule Date
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="px-4 py-2 bg-muted"
-                  >
+                  </button>
+                  <button className="control-btn px-4 py-2 rounded-xl">
                     <Heart className="w-4 h-4" />
-                  </Button>
+                  </button>
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           ))
         )}
       </div>

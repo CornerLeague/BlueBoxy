@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { ArrowLeft, Copy, Heart, Sun, Zap, Clock } from "lucide-react";
+import { ArrowLeft, Copy, Heart, Sun, Zap, Clock, MessageSquare } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 const messageCategories = [
@@ -59,7 +59,7 @@ export default function Messages() {
   const filteredMessages = sampleMessages.filter(msg => msg.category === activeCategory);
 
   return (
-    <div className="p-6 min-h-screen">
+    <div className="p-6 min-h-screen pb-24">
       <div className="flex items-center mb-6">
         <Button
           variant="ghost"
@@ -96,36 +96,30 @@ export default function Messages() {
         {filteredMessages.map((message) => {
           const IconComponent = message.icon;
           return (
-            <Card key={message.id} className="bg-secondary rounded-xl">
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center">
-                    <div className={`w-8 h-8 ${message.iconColor} rounded-full flex items-center justify-center mr-3`}>
-                      <IconComponent className="w-4 h-4 text-white" />
-                    </div>
-                    <span className="text-sm font-medium">{message.title}</span>
+            <div key={message.id} className="glass-card rounded-2xl p-4">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center">
+                  <div className={`w-8 h-8 ${message.iconColor} rounded-full flex items-center justify-center mr-3 shadow-lg`}>
+                    <IconComponent className="w-4 h-4 text-white" />
                   </div>
-                  <span className="text-xs text-primary">{message.personalityMatch}</span>
+                  <span className="text-sm font-medium">{message.title}</span>
                 </div>
-                <p className="text-foreground mb-4">{message.content}</p>
-                <div className="flex space-x-2">
-                  <Button
-                    onClick={() => handleCopyMessage(message.content)}
-                    className="flex-1 bg-primary text-white hover:bg-primary/90"
-                  >
-                    <Copy className="w-4 h-4 mr-2" />
-                    Copy Message
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="px-4 py-2 bg-muted"
-                  >
-                    <Heart className="w-4 h-4" />
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
+                <span className="text-xs text-primary font-medium">{message.personalityMatch}</span>
+              </div>
+              <p className="text-foreground mb-4 leading-relaxed">{message.content}</p>
+              <div className="flex space-x-2">
+                <button
+                  onClick={() => handleCopyMessage(message.content)}
+                  className="flex-1 bg-gradient-to-r from-primary to-blue-500 text-white hover:from-primary/90 hover:to-blue-500/90 px-4 py-2 rounded-xl font-medium shadow-lg transition-all duration-200 flex items-center justify-center"
+                >
+                  <Copy className="w-4 h-4 mr-2" />
+                  Copy Message
+                </button>
+                <button className="control-btn px-4 py-2 rounded-xl">
+                  <Heart className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
           );
         })}
       </div>

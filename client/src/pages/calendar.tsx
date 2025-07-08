@@ -96,7 +96,7 @@ export default function Calendar() {
   const monthYear = currentMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
 
   return (
-    <div className="p-6 min-h-screen">
+    <div className="p-6 min-h-screen pb-24">
       <div className="flex items-center mb-6">
         <Button
           variant="ghost"
@@ -110,29 +110,24 @@ export default function Calendar() {
       </div>
       
       {/* Calendar Header */}
-      <Card className="p-4 mb-6">
-        <CardContent className="p-0">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold">{monthYear}</h3>
-            <div className="flex space-x-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1))}
-                className="p-2 rounded-full bg-muted"
-              >
-                <ChevronLeft className="w-4 h-4" />
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1))}
-                className="p-2 rounded-full bg-muted"
-              >
-                <ChevronRight className="w-4 h-4" />
-              </Button>
-            </div>
+      <div className="glass-card rounded-2xl p-4 mb-6">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-semibold">{monthYear}</h3>
+          <div className="flex space-x-2">
+            <button
+              onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1))}
+              className="control-btn p-2 rounded-full"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1))}
+              className="control-btn p-2 rounded-full"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
           </div>
+        </div>
           
           {/* Mini Calendar Grid */}
           <div className="grid grid-cols-7 gap-1 text-center text-sm">
@@ -161,47 +156,41 @@ export default function Calendar() {
               );
             })}
           </div>
-        </CardContent>
-      </Card>
+      </div>
       
       {/* Upcoming Events */}
       <div className="mb-6">
         <h3 className="text-lg font-semibold mb-4">Upcoming Events</h3>
         <div className="space-y-3">
           {events.map((event: any) => (
-            <Card key={event.id} className="bg-secondary rounded-xl">
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center">
-                    <div className={`w-3 h-3 ${event.color} rounded-full mr-3`}></div>
-                    <span className="font-semibold">{event.title}</span>
-                  </div>
-                  <span className="text-muted-foreground text-sm">{getRelativeDate(event.date)}</span>
+            <div key={event.id} className="glass-card rounded-2xl p-4">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center">
+                  <div className={`w-3 h-3 ${event.color} rounded-full mr-3 shadow-lg`}></div>
+                  <span className="font-semibold">{event.title}</span>
                 </div>
-                <p className="text-muted-foreground text-sm mb-2">
-                  {formatDate(event.date)} at {formatTime(event.date)}
-                </p>
-                <p className="text-muted-foreground text-sm">{event.description}</p>
-              </CardContent>
-            </Card>
+                <span className="text-muted-foreground text-sm font-medium">{getRelativeDate(event.date)}</span>
+              </div>
+              <p className="text-muted-foreground text-sm mb-2">
+                {formatDate(event.date)} at {formatTime(event.date)}
+              </p>
+              <p className="text-muted-foreground text-sm leading-relaxed">{event.description}</p>
+            </div>
           ))}
         </div>
       </div>
       
       {/* Quick Actions */}
       <div className="grid grid-cols-2 gap-4">
-        <Button className="bg-primary text-white p-4 rounded-xl flex flex-col items-center h-auto">
+        <button className="bg-gradient-to-r from-primary to-blue-500 text-white p-4 rounded-2xl flex flex-col items-center h-auto shadow-lg transition-all duration-200 hover:shadow-xl">
           <Plus className="w-6 h-6 mb-2" />
           <span className="text-sm font-medium">Add Event</span>
-        </Button>
+        </button>
         
-        <Button 
-          variant="outline"
-          className="bg-secondary text-foreground p-4 rounded-xl flex flex-col items-center h-auto"
-        >
+        <button className="control-btn text-foreground p-4 rounded-2xl flex flex-col items-center h-auto">
           <Clock className="w-6 h-6 mb-2" />
           <span className="text-sm font-medium">Set Reminder</span>
-        </Button>
+        </button>
       </div>
     </div>
   );

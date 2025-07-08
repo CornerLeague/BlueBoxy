@@ -42,7 +42,7 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen pb-20">
       {/* Header */}
       <div className="p-6 pb-4">
         <div className="flex items-center justify-between mb-6">
@@ -56,31 +56,29 @@ export default function Dashboard() {
         </div>
         
         {/* Personality Insight Card */}
-        <Card className="glass-effect rounded-xl p-4 mb-6 personality-glow">
-          <CardContent className="p-0">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="font-semibold">{user.partnerName}'s Personality</h3>
-              <span className="text-xs bg-primary px-2 py-1 rounded-full text-white">
-                {user.personalityType || "Thoughtful Harmonizer"}
-              </span>
+        <div className="glass-card rounded-2xl p-6 mb-6 personality-glow">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-semibold text-lg">{user.partnerName}'s Personality</h3>
+            <span className="mode-badge px-3 py-1 rounded-full text-xs font-medium text-primary">
+              {user.personalityType || "Thoughtful Harmonizer"}
+            </span>
+          </div>
+          <p className="text-muted-foreground text-sm mb-6">
+            {user.partnerName} values meaningful connections and appreciates thoughtful gestures. 
+            They respond well to quality time and words of affirmation.
+          </p>
+          
+          <div className="flex items-center justify-between">
+            <div className="flex items-center">
+              <div className="w-3 h-3 bg-success rounded-full mr-2"></div>
+              <span className="text-sm">Compatibility: 92%</span>
             </div>
-            <p className="text-muted-foreground text-sm mb-4">
-              {user.partnerName} values meaningful connections and appreciates thoughtful gestures. 
-              They respond well to quality time and words of affirmation.
-            </p>
-            
-            <div className="flex items-center justify-between">
-              <div className="flex items-center">
-                <div className="w-3 h-3 bg-success rounded-full mr-2"></div>
-                <span className="text-sm">Compatibility: 92%</span>
-              </div>
-              <div className="flex items-center">
-                <div className="w-3 h-3 bg-warning rounded-full mr-2"></div>
-                <span className="text-sm">Needs attention</span>
-              </div>
+            <div className="flex items-center">
+              <div className="w-3 h-3 bg-warning rounded-full mr-2"></div>
+              <span className="text-sm text-warning">Needs attention</span>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
       
       {/* Today's Recommendations */}
@@ -107,49 +105,45 @@ export default function Dashboard() {
       <div className="px-6 mb-6">
         <h2 className="text-lg font-semibold mb-4">Quick Actions</h2>
         <div className="grid grid-cols-2 gap-4">
-          <Button 
+          <button 
             onClick={() => setLocation("/messages")}
-            variant="outline"
-            className="bg-secondary p-4 rounded-xl flex flex-col items-center h-auto"
+            className="control-btn p-4 rounded-2xl flex flex-col items-center h-auto border-0"
           >
-            <div className="w-12 h-12 bg-primary rounded-full flex items-center justify-center mb-2">
+            <div className="w-12 h-12 bg-gradient-to-br from-primary to-blue-500 rounded-full flex items-center justify-center mb-2 shadow-lg">
               <MessageSquare className="w-6 h-6 text-white" />
             </div>
             <span className="text-sm font-medium">Messages</span>
-          </Button>
+          </button>
           
-          <Button 
+          <button 
             onClick={() => setLocation("/activities")}
-            variant="outline"
-            className="bg-secondary p-4 rounded-xl flex flex-col items-center h-auto"
+            className="control-btn p-4 rounded-2xl flex flex-col items-center h-auto border-0"
           >
-            <div className="w-12 h-12 bg-success rounded-full flex items-center justify-center mb-2">
+            <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-emerald-500 rounded-full flex items-center justify-center mb-2 shadow-lg">
               <MapPin className="w-6 h-6 text-white" />
             </div>
             <span className="text-sm font-medium">Activities</span>
-          </Button>
+          </button>
           
-          <Button 
+          <button 
             onClick={() => setLocation("/calendar")}
-            variant="outline"
-            className="bg-secondary p-4 rounded-xl flex flex-col items-center h-auto"
+            className="control-btn p-4 rounded-2xl flex flex-col items-center h-auto border-0"
           >
-            <div className="w-12 h-12 bg-warning rounded-full flex items-center justify-center mb-2">
+            <div className="w-12 h-12 bg-gradient-to-br from-amber-500 to-orange-500 rounded-full flex items-center justify-center mb-2 shadow-lg">
               <Calendar className="w-6 h-6 text-white" />
             </div>
             <span className="text-sm font-medium">Calendar</span>
-          </Button>
+          </button>
           
-          <Button 
+          <button 
             onClick={() => setLocation("/profile")}
-            variant="outline"
-            className="bg-secondary p-4 rounded-xl flex flex-col items-center h-auto"
+            className="control-btn p-4 rounded-2xl flex flex-col items-center h-auto border-0"
           >
-            <div className="w-12 h-12 bg-blue-400 rounded-full flex items-center justify-center mb-2">
+            <div className="w-12 h-12 bg-gradient-to-br from-cyan-500 to-blue-500 rounded-full flex items-center justify-center mb-2 shadow-lg">
               <User className="w-6 h-6 text-white" />
             </div>
             <span className="text-sm font-medium">Profile</span>
-          </Button>
+          </button>
         </div>
       </div>
     </div>

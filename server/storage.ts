@@ -125,11 +125,14 @@ export class MemStorage implements IStorage {
   async createUser(insertUser: InsertUser): Promise<User> {
     const id = this.currentUserId++;
     const user: User = {
-      ...insertUser,
       id,
-      createdAt: new Date(),
+      name: insertUser.name,
+      email: insertUser.email,
+      partnerName: insertUser.partnerName || null,
+      relationshipDuration: insertUser.relationshipDuration || null,
       assessmentCompleted: false,
       personalityType: null,
+      createdAt: new Date(),
     };
     this.users.set(id, user);
     return user;
@@ -148,8 +151,10 @@ export class MemStorage implements IStorage {
   async saveAssessmentResponse(response: InsertAssessmentResponse): Promise<AssessmentResponse> {
     const id = this.currentAssessmentId++;
     const assessmentResponse: AssessmentResponse = {
-      ...response,
       id,
+      userId: response.userId || null,
+      responses: response.responses,
+      personalityType: response.personalityType,
       completedAt: new Date(),
     };
     this.assessmentResponses.set(id, assessmentResponse);
@@ -171,8 +176,14 @@ export class MemStorage implements IStorage {
   async createRecommendation(recommendation: InsertRecommendation): Promise<Recommendation> {
     const id = this.currentRecommendationId++;
     const newRecommendation: Recommendation = {
-      ...recommendation,
       id,
+      userId: recommendation.userId || null,
+      type: recommendation.type,
+      category: recommendation.category,
+      content: recommendation.content,
+      priority: recommendation.priority,
+      personalityMatch: recommendation.personalityMatch || null,
+      isActive: recommendation.isActive !== undefined ? recommendation.isActive : true,
       createdAt: new Date(),
     };
     this.recommendations.set(id, newRecommendation);
@@ -201,7 +212,17 @@ export class MemStorage implements IStorage {
 
   async createActivity(activity: InsertActivity): Promise<Activity> {
     const id = this.currentActivityId++;
-    const newActivity: Activity = { ...activity, id };
+    const newActivity: Activity = {
+      id,
+      name: activity.name,
+      description: activity.description,
+      category: activity.category,
+      location: activity.location || null,
+      rating: activity.rating || null,
+      distance: activity.distance || null,
+      personalityMatch: activity.personalityMatch || null,
+      imageUrl: activity.imageUrl || null,
+    };
     this.activities.set(id, newActivity);
     return newActivity;
   }
@@ -215,8 +236,13 @@ export class MemStorage implements IStorage {
   async createEvent(event: InsertScheduledEvent): Promise<ScheduledEvent> {
     const id = this.currentEventId++;
     const newEvent: ScheduledEvent = {
-      ...event,
       id,
+      userId: event.userId || null,
+      title: event.title,
+      description: event.description || null,
+      date: event.date,
+      type: event.type,
+      reminderSet: event.reminderSet !== undefined ? event.reminderSet : false,
       createdAt: new Date(),
     };
     this.scheduledEvents.set(id, newEvent);
