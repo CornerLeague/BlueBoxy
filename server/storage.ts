@@ -121,6 +121,7 @@ export class MemStorage implements IStorage {
       id,
       name: insertUser.name,
       email: insertUser.email,
+      password: insertUser.password,
       partnerName: insertUser.partnerName || null,
       relationshipDuration: insertUser.relationshipDuration || null,
       assessmentCompleted: false,

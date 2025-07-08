@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Navigation } from "@/components/navigation";
 import Onboarding from "@/pages/onboarding";
+import Login from "@/pages/login";
 import Assessment from "@/pages/assessment";
 import Dashboard from "@/pages/dashboard";
 import Messages from "@/pages/messages";
@@ -15,12 +16,13 @@ import NotFound from "@/pages/not-found";
 
 function Router() {
   const [location] = useLocation();
-  const showNavigation = !['/', '/assessment'].includes(location);
+  const showNavigation = !['/', '/login', '/assessment'].includes(location);
 
   return (
     <div className="relative">
       <Switch>
         <Route path="/" component={Onboarding} />
+        <Route path="/login" component={Login} />
         <Route path="/assessment" component={Assessment} />
         <Route path="/dashboard" component={Dashboard} />
         <Route path="/messages" component={Messages} />

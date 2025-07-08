@@ -111,12 +111,22 @@ export default function Onboarding() {
           </div>
         </div>
         
-        <Button 
-          onClick={() => setStep(2)}
-          className="w-full bg-gradient-to-r from-primary to-blue-400 text-white py-4 rounded-xl font-semibold text-lg mt-8"
-        >
-          Get Started
-        </Button>
+        <div className="space-y-3 mt-8">
+          <Button 
+            onClick={() => setStep(2)}
+            className="w-full bg-gradient-to-r from-primary to-blue-400 text-white py-4 rounded-xl font-semibold text-lg"
+          >
+            Get Started
+          </Button>
+          
+          <Button 
+            onClick={() => setLocation("/login")}
+            variant="outline"
+            className="w-full py-4 rounded-xl font-semibold text-lg"
+          >
+            Login to Existing Account
+          </Button>
+        </div>
       </div>
     );
   }

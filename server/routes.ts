@@ -46,9 +46,13 @@ export async function registerRoutes(app: Express) {
         return res.status(400).json({ error: "User already exists" });
       }
 
+      // Hash password
+      const hashedPassword = await bcrypt.hash(password, 10);
+      
       const userData = {
         name: name || "User",
         email,
+        password: hashedPassword,
         partnerName: partnerName || "",
         relationshipDuration: "",
         assessmentCompleted: false,
@@ -84,14 +88,13 @@ export async function registerRoutes(app: Express) {
       
       const user = await storage.getUserByEmail(email);
       if (!user) {
-        return res.status(401).json({ error: "Invalid credentials" });
+        return res.status(401).json({ error: "Invalid email or password" });
       }
 
-      // For demo purposes, accept any password for existing users
-      // In a real app, you'd compare with stored password hash
-      const isValidPassword = password === "password123" || password === "demo";
-      if (!isValidPassword) {
-        return res.status(401).json({ error: "Invalid credentials" });
+      // Check password
+      const isPasswordValid = await bcrypt.compare(password, user.password);
+      if (!isPasswordValid) {
+        return res.status(401).json({ error: "Invalid email or password" });
       }
 
       const token = jwt.sign(
