@@ -8,16 +8,30 @@ import { ArrowLeft, User, Edit, RefreshCw, Bell, Lock, ChevronRight } from "luci
 export default function Profile() {
   const [, setLocation] = useLocation();
   const userId = localStorage.getItem("userId");
+  const token = localStorage.getItem("authToken");
 
   const { data: user } = useQuery({
     queryKey: [`/api/user/profile`],
-    enabled: !!userId,
+    enabled: !!userId && !!token,
   });
 
   const { data: assessment } = useQuery({
     queryKey: [`/api/assessments/user/${userId}`],
-    enabled: !!userId,
+    enabled: !!userId && !!token,
   });
+
+  if (!userId || !token) {
+    return (
+      <div className="p-6 min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-muted-foreground">Please log in to view your profile.</p>
+          <Button onClick={() => setLocation("/onboarding")} className="mt-4">
+            Go to Login
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   if (!user) {
     return (
