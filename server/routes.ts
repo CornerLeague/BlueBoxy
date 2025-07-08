@@ -218,23 +218,16 @@ export async function registerRoutes(app: Express) {
       
       const assessmentData = {
         userId: req.user.userId,
-        partnerId: null,
-        assessmentType: assessmentType || "user",
-        questionsResponses: responses,
-        connectionStyleScore: scores.connectionStyle.toString(),
-        motivationDriverScore: scores.motivationDriver.toString(),
-        affectionLanguageScore: scores.affectionLanguage.toString(),
-        personalityType,
-        confidenceScore: scores.confidence.toString(),
-        assessmentVersion: "1.0"
+        responses,
+        personalityType
       };
 
-      const assessment = await storage.savePersonalityAssessment(assessmentData);
+      const assessment = await storage.saveAssessmentResponse(assessmentData);
       
-      // Update user's personality type and onboarding status
+      // Update user's personality type and assessment status
       await storage.updateUser(req.user.userId, {
         personalityType,
-        onboardingCompleted: true
+        assessmentCompleted: true
       });
 
       res.json(assessment);
@@ -245,7 +238,7 @@ export async function registerRoutes(app: Express) {
 
   app.get("/api/assessment/results/:assessmentId", authenticateToken, async (req: any, res) => {
     try {
-      const assessment = await storage.getPersonalityAssessmentByUserId(req.user.userId);
+      const assessment = await storage.getAssessmentByUserId(req.user.userId);
       if (!assessment) {
         return res.status(404).json({ error: "Assessment not found" });
       }
