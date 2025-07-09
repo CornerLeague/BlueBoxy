@@ -63,6 +63,19 @@ export default function GetStarted() {
             Get Started
             <ArrowRight className="w-5 h-5" />
           </Button>
+          
+          <div className="text-center">
+            <p className="text-muted-foreground">
+              Have an account?{" "}
+              <Button
+                variant="link"
+                className="p-0 h-auto text-primary font-semibold"
+                onClick={() => setLocation("/login")}
+              >
+                Login here
+              </Button>
+            </p>
+          </div>
         </div>
       </div>
     </div>
