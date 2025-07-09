@@ -155,7 +155,7 @@ export default function Assessment() {
           <div className="space-y-3">
             {question.options.map((option) => (
               <div key={option.value} className="flex items-center space-x-2">
-                <Card className="flex-1 cursor-pointer hover:bg-[var(--hover-subtle)] transition-colors">
+                <Card className="flex-1 cursor-pointer hover:bg-[var(--hover-subtle)] hover:text-[var(--hover-text)] transition-colors">
                   <Label htmlFor={option.value} className="cursor-pointer">
                     <CardContent className="flex items-center p-4">
                       <RadioGroupItem value={option.value} id={option.value} className="mr-4" />

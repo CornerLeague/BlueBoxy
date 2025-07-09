@@ -23,7 +23,7 @@ export function Navigation() {
             className={`nav-item flex flex-col items-center p-2 rounded-xl transition-all duration-200 ${
               location === path 
                 ? "text-primary bg-primary/10 scale-105" 
-                : "text-muted-foreground hover:text-primary/70 hover:bg-[var(--hover-subtle)]"
+                : "text-muted-foreground hover:text-[var(--hover-text)] hover:bg-[var(--hover-subtle)]"
             }`}
           >
             <Icon className={`w-5 h-5 mb-1 ${location === path ? 'drop-shadow-lg' : ''}`} />

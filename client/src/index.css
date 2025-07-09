@@ -29,6 +29,7 @@
   --glass: rgba(255, 255, 255, 0.05);
   --glass-border: rgba(255, 255, 255, 0.1);
   --hover-subtle: rgba(255, 255, 255, 0.03);
+  --hover-text: hsl(0, 0%, 100%);
 }
 
 @layer base {

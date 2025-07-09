@@ -145,3 +145,4 @@ Changelog:
 - July 08, 2025. Implemented comprehensive backend architecture with full API specification including authentication, partner management, AI recommendations, notifications, and calendar integration
 - July 08, 2025. Fixed authentication system - resolved "failed to create account" error by updating frontend to use correct /api/auth/register endpoint
 - July 08, 2025. Fixed assessment saving - resolved "failed to save assessment" error by updating storage method calls and fixing endpoint routing
+- July 09, 2025. Enhanced hover effects - added subtle transparent grey background with bright white text on hover for better visibility and user feedback
