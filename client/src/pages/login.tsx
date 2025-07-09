@@ -68,6 +68,19 @@ export default function Login() {
 
   return (
     <div className="p-6 min-h-screen flex flex-col">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-8">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => setLocation("/")}
+          className="flex items-center gap-2"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          Back
+        </Button>
+      </div>
+
       {/* Logo and Title */}
       <div className="flex-1 flex flex-col justify-center">
         <div className="text-center mb-8">

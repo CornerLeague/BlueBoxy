@@ -4,6 +4,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Navigation } from "@/components/navigation";
+import GetStarted from "@/pages/get-started";
 import Login from "@/pages/login";
 import Assessment from "@/pages/assessment";
 import Dashboard from "@/pages/dashboard";
@@ -15,12 +16,13 @@ import NotFound from "@/pages/not-found";
 
 function Router() {
   const [location] = useLocation();
-  const showNavigation = !['/', '/assessment'].includes(location);
+  const showNavigation = !['/', '/login', '/assessment'].includes(location);
 
   return (
     <div className="relative">
       <Switch>
-        <Route path="/" component={Login} />
+        <Route path="/" component={GetStarted} />
+        <Route path="/login" component={Login} />
         <Route path="/assessment" component={Assessment} />
         <Route path="/dashboard" component={Dashboard} />
         <Route path="/messages" component={Messages} />
