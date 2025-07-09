@@ -68,28 +68,15 @@ export default function Login() {
 
   return (
     <div className="p-6 min-h-screen flex flex-col">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-8">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => setLocation("/onboarding")}
-          className="flex items-center gap-2"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          Back
-        </Button>
-      </div>
-
       {/* Logo and Title */}
       <div className="flex-1 flex flex-col justify-center">
         <div className="text-center mb-8">
           <div className="w-20 h-20 bg-gradient-to-br from-primary to-blue-400 rounded-full flex items-center justify-center mb-6 mx-auto animate-float">
             <Heart className="w-10 h-10 text-white" />
           </div>
-          <h1 className="text-3xl font-bold mb-2">Welcome Back</h1>
+          <h1 className="text-3xl font-bold mb-2">Welcome to BlueBoxy</h1>
           <p className="text-muted-foreground">
-            Sign in to continue your relationship journey
+            Your AI-powered relationship assistant
           </p>
         </div>
 
@@ -163,19 +150,7 @@ export default function Login() {
           </CardContent>
         </Card>
 
-        {/* Sign Up Link */}
-        <div className="text-center mt-6">
-          <p className="text-muted-foreground">
-            Don't have an account?{" "}
-            <Button
-              variant="link"
-              className="p-0 h-auto text-primary font-semibold"
-              onClick={() => setLocation("/onboarding")}
-            >
-              Sign up here
-            </Button>
-          </p>
-        </div>
+
       </div>
     </div>
   );

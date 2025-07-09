@@ -146,3 +146,4 @@ Changelog:
 - July 08, 2025. Fixed authentication system - resolved "failed to create account" error by updating frontend to use correct /api/auth/register endpoint
 - July 08, 2025. Fixed assessment saving - resolved "failed to save assessment" error by updating storage method calls and fixing endpoint routing
 - July 09, 2025. Enhanced hover effects - added subtle transparent grey background with bright white text on hover for better visibility and user feedback
+- July 09, 2025. Removed onboarding page - simplified app flow by making login page the default entry point and removing signup text
