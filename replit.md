@@ -149,3 +149,4 @@ Changelog:
 - July 09, 2025. Removed onboarding page - simplified app flow by making login page the default entry point and removing signup text
 - July 09, 2025. Added Get Started page - created welcome page with app features and added back button to login page
 - July 09, 2025. Updated Get Started flow - main button now directs to assessment, added "Have an account? Login here" text for existing users
+- July 09, 2025. Fixed guest assessment flow - added guest assessment endpoint for unauthenticated users, results saved to localStorage and transferred to user account on login

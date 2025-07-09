@@ -225,6 +225,26 @@ export async function registerRoutes(app: Express) {
     res.json({ questions });
   });
 
+  // Guest assessment endpoint (no authentication required)
+  app.post("/api/assessment/guest", async (req: any, res) => {
+    try {
+      const { responses, assessmentType } = req.body;
+      
+      // Calculate personality scores
+      const scores = calculatePersonalityScores(responses);
+      const personalityType = determinePersonalityType(scores);
+      
+      // Return assessment results without saving to database
+      res.json({
+        personalityType,
+        scores,
+        responses
+      });
+    } catch (error) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
   app.post("/api/assessment/responses", authenticateToken, async (req: any, res) => {
     try {
       const { responses, assessmentType } = req.body;

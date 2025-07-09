@@ -74,15 +74,28 @@ export default function Assessment() {
 
   const saveAssessmentMutation = useMutation({
     mutationFn: async (assessmentData: any) => {
-      const response = await apiRequest("POST", "/api/assessment/responses", assessmentData);
+      // Use guest endpoint if no user ID (guest assessment)
+      const endpoint = userId ? "/api/assessment/responses" : "/api/assessment/guest";
+      const response = await apiRequest("POST", endpoint, assessmentData);
       return response.json();
     },
-    onSuccess: () => {
-      toast({
-        title: "Assessment Complete!",
-        description: "We've analyzed your partner's personality and are generating personalized recommendations.",
-      });
-      setLocation("/dashboard");
+    onSuccess: (data) => {
+      if (userId) {
+        // Logged in user - save to database and go to dashboard
+        toast({
+          title: "Assessment Complete!",
+          description: "We've analyzed your partner's personality and are generating personalized recommendations.",
+        });
+        setLocation("/dashboard");
+      } else {
+        // Guest user - store results in localStorage and go to login
+        localStorage.setItem("guestAssessmentResults", JSON.stringify(data));
+        toast({
+          title: "Assessment Complete!",
+          description: "Create an account to save your results and get personalized recommendations.",
+        });
+        setLocation("/login");
+      }
     },
     onError: () => {
       toast({

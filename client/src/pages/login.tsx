@@ -41,16 +41,41 @@ export default function Login() {
     onSuccess: (data) => {
       localStorage.setItem("userId", data.user.id.toString());
       localStorage.setItem("authToken", data.token);
-      toast({
-        title: "Welcome back!",
-        description: "Successfully logged into your account.",
-      });
       
-      // Navigate based on assessment completion
-      if (data.user.assessmentCompleted) {
-        setLocation("/dashboard");
+      // Check if there are guest assessment results to save
+      const guestResults = localStorage.getItem("guestAssessmentResults");
+      if (guestResults) {
+        const results = JSON.parse(guestResults);
+        // Save guest assessment results to the user's account
+        apiRequest("POST", "/api/assessment/responses", {
+          responses: results.responses,
+          assessmentType: "user"
+        }).then(() => {
+          localStorage.removeItem("guestAssessmentResults");
+          toast({
+            title: "Welcome back!",
+            description: "Your assessment results have been saved to your account.",
+          });
+          setLocation("/dashboard");
+        }).catch(() => {
+          toast({
+            title: "Welcome back!",
+            description: "Successfully logged in. You can retake the assessment if needed.",
+          });
+          setLocation("/dashboard");
+        });
       } else {
-        setLocation("/assessment");
+        toast({
+          title: "Welcome back!",
+          description: "Successfully logged into your account.",
+        });
+        
+        // Navigate based on assessment completion
+        if (data.user.assessmentCompleted) {
+          setLocation("/dashboard");
+        } else {
+          setLocation("/assessment");
+        }
       }
     },
     onError: (error: any) => {
