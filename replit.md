@@ -148,3 +148,4 @@ Changelog:
 - July 09, 2025. Enhanced hover effects - added subtle transparent grey background with bright white text on hover for better visibility and user feedback
 - July 09, 2025. Removed onboarding page - simplified app flow by making login page the default entry point and removing signup text
 - July 09, 2025. Added Get Started page - created welcome page with app features and added back button to login page
+- July 09, 2025. Updated Get Started flow - main button now directs to assessment, added "Have an account? Login here" text for existing users

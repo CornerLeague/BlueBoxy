@@ -57,7 +57,7 @@ export default function GetStarted() {
 
         <div className="w-full space-y-4">
           <Button
-            onClick={() => setLocation("/login")}
+            onClick={() => setLocation("/assessment")}
             className="w-full bg-gradient-to-r from-primary to-blue-400 text-white py-4 rounded-xl font-semibold text-lg flex items-center justify-center gap-2"
           >
             Get Started
