@@ -86,7 +86,7 @@ export default function Profile() {
       <div className="glass-card rounded-2xl p-6 mb-6">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-semibold">{user.partnerName}'s Profile</h3>
-          <button className="control-btn px-3 py-1 rounded-lg text-primary text-sm font-medium flex items-center">
+          <button className="control-btn px-3 py-1 rounded-lg text-primary text-sm font-medium flex items-center hover:bg-[var(--hover-subtle)] transition-colors">
             <Edit className="w-4 h-4 mr-1" />
             Edit
           </button>
@@ -160,7 +160,7 @@ export default function Profile() {
       {/* Settings */}
       <div className="space-y-3">
         <button 
-          className="w-full control-btn p-4 rounded-2xl flex items-center justify-between border-0"
+          className="w-full control-btn p-4 rounded-2xl flex items-center justify-between border-0 hover:bg-[var(--hover-subtle)] transition-colors"
           onClick={() => setLocation("/assessment")}
         >
           <div className="flex items-center">

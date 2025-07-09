@@ -121,7 +121,7 @@ export default function Dashboard() {
         <div className="grid grid-cols-2 gap-4">
           <button 
             onClick={() => setLocation("/messages")}
-            className="control-btn p-4 rounded-2xl flex flex-col items-center h-auto border-0"
+            className="control-btn p-4 rounded-2xl flex flex-col items-center h-auto border-0 hover:bg-[var(--hover-subtle)] transition-colors"
           >
             <div className="w-12 h-12 bg-gradient-to-br from-primary to-blue-500 rounded-full flex items-center justify-center mb-2 shadow-lg">
               <MessageSquare className="w-6 h-6 text-white" />
@@ -131,7 +131,7 @@ export default function Dashboard() {
           
           <button 
             onClick={() => setLocation("/activities")}
-            className="control-btn p-4 rounded-2xl flex flex-col items-center h-auto border-0"
+            className="control-btn p-4 rounded-2xl flex flex-col items-center h-auto border-0 hover:bg-[var(--hover-subtle)] transition-colors"
           >
             <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-emerald-500 rounded-full flex items-center justify-center mb-2 shadow-lg">
               <MapPin className="w-6 h-6 text-white" />
@@ -141,7 +141,7 @@ export default function Dashboard() {
           
           <button 
             onClick={() => setLocation("/calendar")}
-            className="control-btn p-4 rounded-2xl flex flex-col items-center h-auto border-0"
+            className="control-btn p-4 rounded-2xl flex flex-col items-center h-auto border-0 hover:bg-[var(--hover-subtle)] transition-colors"
           >
             <div className="w-12 h-12 bg-gradient-to-br from-amber-500 to-orange-500 rounded-full flex items-center justify-center mb-2 shadow-lg">
               <Calendar className="w-6 h-6 text-white" />
@@ -151,7 +151,7 @@ export default function Dashboard() {
           
           <button 
             onClick={() => setLocation("/profile")}
-            className="control-btn p-4 rounded-2xl flex flex-col items-center h-auto border-0"
+            className="control-btn p-4 rounded-2xl flex flex-col items-center h-auto border-0 hover:bg-[var(--hover-subtle)] transition-colors"
           >
             <div className="w-12 h-12 bg-gradient-to-br from-cyan-500 to-blue-500 rounded-full flex items-center justify-center mb-2 shadow-lg">
               <User className="w-6 h-6 text-white" />

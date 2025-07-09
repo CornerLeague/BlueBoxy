@@ -28,6 +28,7 @@
   --error: hsl(0, 84%, 60%);
   --glass: rgba(255, 255, 255, 0.05);
   --glass-border: rgba(255, 255, 255, 0.1);
+  --hover-subtle: rgba(255, 255, 255, 0.03);
 }
 
 @layer base {
