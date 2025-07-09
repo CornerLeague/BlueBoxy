@@ -71,16 +71,20 @@ export default function Assessment() {
   const { toast } = useToast();
 
   const userId = localStorage.getItem("userId");
+  const authToken = localStorage.getItem("authToken");
 
   const saveAssessmentMutation = useMutation({
     mutationFn: async (assessmentData: any) => {
-      // Use guest endpoint if no user ID (guest assessment)
-      const endpoint = userId ? "/api/assessment/responses" : "/api/assessment/guest";
+      // Use guest endpoint if no user ID AND no auth token (guest assessment)
+      const isGuest = !userId || !authToken;
+      const endpoint = isGuest ? "/api/assessment/guest" : "/api/assessment/responses";
+      console.log("Assessment submission:", { userId, authToken: !!authToken, isGuest, endpoint, assessmentData });
       const response = await apiRequest("POST", endpoint, assessmentData);
       return response.json();
     },
     onSuccess: (data) => {
-      if (userId) {
+      const isGuest = !userId || !authToken;
+      if (!isGuest) {
         // Logged in user - save to database and go to dashboard
         toast({
           title: "Assessment Complete!",
