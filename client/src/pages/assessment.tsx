@@ -78,12 +78,27 @@ export default function Assessment() {
       // Use guest endpoint if no user ID AND no auth token (guest assessment)
       const isGuest = !userId || !authToken;
       const endpoint = isGuest ? "/api/assessment/guest" : "/api/assessment/responses";
-      console.log("Assessment submission:", { userId, authToken: !!authToken, isGuest, endpoint, assessmentData });
-      const response = await apiRequest("POST", endpoint, assessmentData);
-      return response.json();
+      try {
+        const response = await apiRequest("POST", endpoint, assessmentData);
+        return response.json();
+      } catch (error: any) {
+        // If authenticated endpoint fails with 403, try guest endpoint
+        if (error.message.includes("403") && !isGuest) {
+          // Clear invalid tokens
+          localStorage.removeItem("userId");
+          localStorage.removeItem("authToken");
+          const guestResponse = await apiRequest("POST", "/api/assessment/guest", assessmentData);
+          return guestResponse.json();
+        }
+        throw error;
+      }
     },
     onSuccess: (data) => {
-      const isGuest = !userId || !authToken;
+      // Check if tokens are still valid after the request
+      const currentUserId = localStorage.getItem("userId");
+      const currentAuthToken = localStorage.getItem("authToken");
+      const isGuest = !currentUserId || !currentAuthToken;
+      
       if (!isGuest) {
         // Logged in user - save to database and go to dashboard
         toast({
