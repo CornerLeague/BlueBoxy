@@ -1,7 +1,7 @@
 import { 
   users, 
+  assessmentResponses,
   partners,
-  personalityAssessments,
   recommendations, 
   activities, 
   notifications,
@@ -10,8 +10,8 @@ import {
   type InsertUser,
   type Partner,
   type InsertPartner,
-  type PersonalityAssessment,
-  type InsertPersonalityAssessment,
+  type AssessmentResponse,
+  type InsertAssessmentResponse,
   type Recommendation,
   type InsertRecommendation,
   type Activity,
@@ -31,6 +31,10 @@ export interface IStorage {
   createUser(user: InsertUser): Promise<User>;
   updateUser(id: number, updates: Partial<InsertUser>): Promise<User>;
   updateUserPreferences(id: number, preferences: any, location?: any): Promise<User>;
+  
+  // Assessment responses
+  saveAssessmentResponse(response: InsertAssessmentResponse): Promise<AssessmentResponse>;
+  getAssessmentByUserId(userId: number): Promise<AssessmentResponse | undefined>;
   
   // Activities
   getActivities(): Promise<Activity[]>;
@@ -386,6 +390,22 @@ export class DatabaseStorage implements IStorage {
       .values(activity)
       .returning();
     return newActivity;
+  }
+
+  async saveAssessmentResponse(response: InsertAssessmentResponse): Promise<AssessmentResponse> {
+    const [assessment] = await db
+      .insert(assessmentResponses)
+      .values(response)
+      .returning();
+    return assessment;
+  }
+
+  async getAssessmentByUserId(userId: number): Promise<AssessmentResponse | undefined> {
+    const [assessment] = await db
+      .select()
+      .from(assessmentResponses)
+      .where(eq(assessmentResponses.userId, userId));
+    return assessment || undefined;
   }
 }
 

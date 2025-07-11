@@ -7,11 +7,11 @@ export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
   email: text("email").notNull().unique(),
-  password: text("password").notNull(),
+  passwordHash: text("password_hash").notNull(),
   partnerName: text("partner_name"),
   relationshipDuration: text("relationship_duration"),
-  assessmentCompleted: boolean("assessment_completed").default(false),
   personalityType: text("personality_type"),
+  personalityInsight: jsonb("personality_insight"),
   preferences: jsonb("preferences"),
   location: jsonb("location"),
   createdAt: timestamp("created_at").defaultNow(),
@@ -38,20 +38,12 @@ export const partners = pgTable("partners", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
-export const personalityAssessments = pgTable("personality_assessments", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
-  partnerId: uuid("partner_id").references(() => partners.id, { onDelete: "cascade" }),
-  assessmentType: varchar("assessment_type", { length: 20 }).notNull(),
-  questionsResponses: jsonb("questions_responses").notNull(),
-  connectionStyleScore: decimal("connection_style_score", { precision: 5, scale: 2 }),
-  motivationDriverScore: decimal("motivation_driver_score", { precision: 5, scale: 2 }),
-  affectionLanguageScore: decimal("affection_language_score", { precision: 5, scale: 2 }),
-  personalityType: varchar("personality_type", { length: 50 }),
-  confidenceScore: decimal("confidence_score", { precision: 5, scale: 2 }),
-  assessmentVersion: varchar("assessment_version", { length: 10 }).notNull(),
+export const assessmentResponses = pgTable("assessment_responses", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  responses: jsonb("responses").notNull(),
+  personalityType: text("personality_type"),
   completedAt: timestamp("completed_at").defaultNow(),
-  createdAt: timestamp("created_at").defaultNow(),
 });
 
 export const recommendations = pgTable("recommendations", {
@@ -139,10 +131,9 @@ export const insertPartnerSchema = createInsertSchema(partners).omit({
   updatedAt: true,
 });
 
-export const insertPersonalityAssessmentSchema = createInsertSchema(personalityAssessments).omit({
+export const insertAssessmentResponseSchema = createInsertSchema(assessmentResponses).omit({
   id: true,
   completedAt: true,
-  createdAt: true,
 });
 
 export const insertRecommendationSchema = createInsertSchema(recommendations).omit({
@@ -172,7 +163,7 @@ export const insertActivitySchema = createInsertSchema(activities).omit({
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
   partners: many(partners),
-  personalityAssessments: many(personalityAssessments),
+  assessmentResponses: many(assessmentResponses),
   recommendations: many(recommendations),
   notifications: many(notifications),
   calendarEvents: many(calendarEvents),
@@ -183,19 +174,19 @@ export const partnersRelations = relations(partners, ({ one, many }) => ({
     fields: [partners.userId],
     references: [users.id],
   }),
-  personalityAssessments: many(personalityAssessments),
+  assessmentResponses: many(assessmentResponses),
   recommendations: many(recommendations),
   calendarEvents: many(calendarEvents),
 }));
 
-export const personalityAssessmentsRelations = relations(personalityAssessments, ({ one }) => ({
+export const assessmentResponsesRelations = relations(assessmentResponses, ({ one }) => ({
   user: one(users, {
-    fields: [personalityAssessments.userId],
+    fields: [assessmentResponses.userId],
     references: [users.id],
   }),
   partner: one(partners, {
-    fields: [personalityAssessments.partnerId],
-    references: [partners.id],
+    fields: [assessmentResponses.userId],
+    references: [partners.userId],
   }),
 }));
 
@@ -203,10 +194,6 @@ export const recommendationsRelations = relations(recommendations, ({ one }) => 
   user: one(users, {
     fields: [recommendations.userId],
     references: [users.id],
-  }),
-  partner: one(partners, {
-    fields: [recommendations.partnerId],
-    references: [partners.id],
   }),
 }));
 
@@ -233,8 +220,8 @@ export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type Partner = typeof partners.$inferSelect;
 export type InsertPartner = z.infer<typeof insertPartnerSchema>;
-export type PersonalityAssessment = typeof personalityAssessments.$inferSelect;
-export type InsertPersonalityAssessment = z.infer<typeof insertPersonalityAssessmentSchema>;
+export type AssessmentResponse = typeof assessmentResponses.$inferSelect;
+export type InsertAssessmentResponse = z.infer<typeof insertAssessmentResponseSchema>;
 export type Recommendation = typeof recommendations.$inferSelect;
 export type InsertRecommendation = z.infer<typeof insertRecommendationSchema>;
 export type Notification = typeof notifications.$inferSelect;
