@@ -154,7 +154,7 @@ export default function Login() {
                             type={showPassword ? "text" : "password"}
                             placeholder="Enter your password"
                             {...field}
-                            className="h-12 bg-background/50 pr-12"
+                            className="h-12 pr-12 bg-[#ffffff21]"
                           />
                           <Button
                             type="button"
