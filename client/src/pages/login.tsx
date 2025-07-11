@@ -134,7 +134,7 @@ export default function Login() {
                           type="email"
                           placeholder="Enter your email"
                           {...field}
-                          className="h-12 bg-background/50"
+                          className="h-12 bg-[#ffffff24]"
                         />
                       </FormControl>
                       <FormMessage />
