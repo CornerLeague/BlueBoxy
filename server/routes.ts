@@ -38,7 +38,7 @@ export async function registerRoutes(app: Express) {
   // Authentication routes
   app.post("/api/auth/register", async (req, res) => {
     try {
-      const { email, password, name, partnerName } = req.body;
+      const { email, password, name, partnerName, relationshipDuration } = req.body;
       
       // Check if user already exists
       const existingUser = await storage.getUserByEmail(email);
@@ -54,7 +54,7 @@ export async function registerRoutes(app: Express) {
         email,
         password: hashedPassword,
         partnerName: partnerName || "",
-        relationshipDuration: "",
+        relationshipDuration: relationshipDuration || "",
         assessmentCompleted: false,
         personalityType: null
       };

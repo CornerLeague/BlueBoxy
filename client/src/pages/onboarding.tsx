@@ -4,18 +4,23 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, ArrowRight, Heart } from "lucide-react";
+import { ArrowLeft, ArrowRight, Heart, Eye, EyeOff } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useMutation } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
 
 export default function Onboarding() {
   const [currentStep, setCurrentStep] = useState(0);
+  const [showPassword, setShowPassword] = useState(false);
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   
   const [formData, setFormData] = useState({
     name: "",
     partnerName: "",
-    relationshipDuration: ""
+    relationshipDuration: "",
+    email: "",
+    password: ""
   });
 
   const steps = [
@@ -39,6 +44,20 @@ export default function Onboarding() {
       field: "relationshipDuration",
       placeholder: "e.g., 6 months, 2 years, etc.",
       type: "text"
+    },
+    {
+      title: "What's your email address?",
+      description: "We'll use this to save your account and send recommendations",
+      field: "email",
+      placeholder: "Enter your email address",
+      type: "email"
+    },
+    {
+      title: "Create a password",
+      description: "Choose a secure password for your account",
+      field: "password",
+      placeholder: "Enter a secure password",
+      type: "password"
     }
   ];
 
@@ -51,6 +70,36 @@ export default function Onboarding() {
     }));
   };
 
+  const createAccountMutation = useMutation({
+    mutationFn: async (userData: any) => {
+      const response = await apiRequest("POST", "/api/auth/register", userData);
+      return response.json();
+    },
+    onSuccess: (data) => {
+      // Save authentication data
+      localStorage.setItem("userId", data.user.id.toString());
+      localStorage.setItem("authToken", data.token);
+      
+      // Clear onboarding data since account is created
+      localStorage.removeItem("onboardingData");
+      
+      toast({
+        title: "Account Created!",
+        description: "Welcome to BlueBoxy! Let's start your personality assessment.",
+      });
+      
+      // Navigate to assessment
+      setLocation("/assessment");
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Account Creation Failed",
+        description: error.message || "Please try again or use a different email.",
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleNext = () => {
     const currentValue = formData[currentStepData.field as keyof typeof formData];
     if (!currentValue.trim()) {
@@ -62,14 +111,41 @@ export default function Onboarding() {
       return;
     }
 
+    // Additional validation for email and password
+    if (currentStepData.field === "email") {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(currentValue)) {
+        toast({
+          title: "Invalid email",
+          description: "Please enter a valid email address.",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
+    if (currentStepData.field === "password") {
+      if (currentValue.length < 6) {
+        toast({
+          title: "Password too short",
+          description: "Password must be at least 6 characters long.",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
     if (currentStep < steps.length - 1) {
       setCurrentStep(prev => prev + 1);
     } else {
-      // Save onboarding data to localStorage
-      localStorage.setItem("onboardingData", JSON.stringify(formData));
-      
-      // Navigate to assessment
-      setLocation("/assessment");
+      // Create account with all collected data
+      createAccountMutation.mutate({
+        name: formData.name,
+        email: formData.email,
+        password: formData.password,
+        partnerName: formData.partnerName,
+        relationshipDuration: formData.relationshipDuration
+      });
     }
   };
 
@@ -135,15 +211,42 @@ export default function Onboarding() {
               <Label htmlFor={currentStepData.field} className="text-sm font-medium">
                 {currentStepData.title}
               </Label>
-              <Input
-                id={currentStepData.field}
-                type={currentStepData.type}
-                placeholder={currentStepData.placeholder}
-                value={formData[currentStepData.field as keyof typeof formData]}
-                onChange={(e) => handleInputChange(e.target.value)}
-                className="h-12 bg-[#ffffff24]"
-                autoFocus
-              />
+              {currentStepData.type === "password" ? (
+                <div className="relative">
+                  <Input
+                    id={currentStepData.field}
+                    type={showPassword ? "text" : "password"}
+                    placeholder={currentStepData.placeholder}
+                    value={formData[currentStepData.field as keyof typeof formData]}
+                    onChange={(e) => handleInputChange(e.target.value)}
+                    className="h-12 pr-12 bg-[#ffffff24]"
+                    autoFocus
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 h-8 w-8 p-0"
+                    onClick={() => setShowPassword(!showPassword)}
+                  >
+                    {showPassword ? (
+                      <EyeOff className="w-4 h-4" />
+                    ) : (
+                      <Eye className="w-4 h-4" />
+                    )}
+                  </Button>
+                </div>
+              ) : (
+                <Input
+                  id={currentStepData.field}
+                  type={currentStepData.type}
+                  placeholder={currentStepData.placeholder}
+                  value={formData[currentStepData.field as keyof typeof formData]}
+                  onChange={(e) => handleInputChange(e.target.value)}
+                  className="h-12 bg-[#ffffff24]"
+                  autoFocus
+                />
+              )}
             </div>
 
             <div className="flex space-x-4">
@@ -158,9 +261,14 @@ export default function Onboarding() {
               <Button
                 onClick={handleNext}
                 className="flex-1 bg-gradient-to-r from-primary to-blue-400 text-white"
-                disabled={!formData[currentStepData.field as keyof typeof formData].trim()}
+                disabled={!formData[currentStepData.field as keyof typeof formData].trim() || createAccountMutation.isPending}
               >
-                {currentStep === steps.length - 1 ? "Start Assessment" : "Next"}
+                {createAccountMutation.isPending 
+                  ? "Creating Account..." 
+                  : currentStep === steps.length - 1 
+                    ? "Create Account" 
+                    : "Next"
+                }
                 <ArrowRight className="w-4 h-4 ml-2" />
               </Button>
             </div>
