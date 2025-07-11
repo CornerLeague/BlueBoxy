@@ -11,22 +11,24 @@ export default function Dashboard() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const userId = localStorage.getItem("userId");
-  const token = localStorage.getItem("authToken");
+  const userData = JSON.parse(localStorage.getItem("userData") || "null");
   const guestResults = localStorage.getItem("guestAssessmentResults");
   const onboardingData = localStorage.getItem("onboardingData");
+  const isAuthenticated = localStorage.getItem("isAuthenticated") === "true";
 
   // Check if user is authenticated or has guest results
-  const isAuthenticated = !!userId && !!token;
   const isGuest = !isAuthenticated && !!guestResults;
 
   const { data: user } = useQuery({
-    queryKey: [`/api/user/profile`],
-    enabled: isAuthenticated,
+    queryKey: [`/api/user/profile`, userId],
+    queryFn: () => fetch(`/api/user/profile?userId=${userId}`).then(res => res.json()),
+    enabled: isAuthenticated && !!userId,
   });
 
   const { data: recommendations = [] } = useQuery({
-    queryKey: [`/api/recommendations/messages`],
-    enabled: isAuthenticated,
+    queryKey: [`/api/recommendations/messages`, userId],
+    queryFn: () => fetch(`/api/recommendations/messages?userId=${userId}`).then(res => res.json()),
+    enabled: isAuthenticated && !!userId,
   });
 
   const handleCopyMessage = (message: string) => {
@@ -49,7 +51,7 @@ export default function Dashboard() {
           <div className="flex items-center justify-between mb-6">
             <div>
               <h1 className="text-2xl font-bold">
-                Good morning{userData.name ? `, ${userData.name}` : ""}
+                Good morning{userData.name ? `, ${userData.name.split(' ')[0]}` : ""}
               </h1>
               <p className="text-muted-foreground">
                 {userData.partnerName 

@@ -93,17 +93,44 @@ export default function Preferences() {
         location: userLocation
       };
 
-      const response = await fetch('/api/user/preferences', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-        body: JSON.stringify(preferencesData)
-      });
+      const userId = localStorage.getItem("userId");
+      const userData = JSON.parse(localStorage.getItem("userData") || "null");
+      const isAuthenticated = localStorage.getItem("isAuthenticated") === "true";
+      
+      if (isAuthenticated && userId && userData) {
+        // Save to server for authenticated users
+        const response = await fetch("/api/user/preferences", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            userId: parseInt(userId),
+            preferences: responses,
+            location: userLocation
+          })
+        });
 
-      if (!response.ok) {
-        throw new Error('Failed to save preferences');
+        if (!response.ok) {
+          throw new Error("Failed to save preferences");
+        }
+
+        // Update localStorage
+        const updatedUserData = {
+          ...userData,
+          preferences: responses,
+          location: userLocation
+        };
+        localStorage.setItem("userData", JSON.stringify(updatedUserData));
+      } else {
+        // Save to localStorage for guests
+        const guestData = JSON.parse(localStorage.getItem("guestAssessmentResults") || "{}");
+        const updatedGuestData = {
+          ...guestData,
+          preferences: responses,
+          location: userLocation
+        };
+        localStorage.setItem("guestAssessmentResults", JSON.stringify(updatedGuestData));
       }
 
       toast({

@@ -11,7 +11,6 @@ import {
 } from "@shared/schema";
 import { z } from "zod";
 import bcrypt from "bcrypt";
-import jwt from "jsonwebtoken";
 import { 
   generatePersonalityInsight, 
   generatePersonalizedMessages, 
@@ -19,26 +18,6 @@ import {
   generateLocationBasedRecommendations,
   type RecommendationContext 
 } from "./openai";
-
-const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key";
-
-// Authentication middleware
-const authenticateToken = (req: any, res: any, next: any) => {
-  const authHeader = req.headers['authorization'];
-  const token = authHeader && authHeader.split(' ')[1];
-
-  if (!token) {
-    return res.status(401).json({ error: 'Access token required' });
-  }
-
-  try {
-    const decoded = jwt.verify(token, JWT_SECRET) as any;
-    req.user = decoded;
-    next();
-  } catch (err) {
-    return res.status(403).json({ error: 'Invalid or expired token' });
-  }
-};
 
 export async function registerRoutes(app: Express) {
   

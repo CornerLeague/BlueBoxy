@@ -389,4 +389,247 @@ export class DatabaseStorage implements IStorage {
   }
 }
 
-export const storage = new MemStorage();
+// Simple localStorage wrapper for server-side compatibility
+class LocalStorageStorage implements IStorage {
+  private storage: Record<string, any> = {};
+  
+  constructor() {
+    // Initialize with empty storage
+    this.storage = {
+      users: new Map(),
+      assessments: new Map(),
+      recommendations: new Map(),
+      activities: new Map(),
+      events: new Map(),
+      currentUserId: 1,
+      currentAssessmentId: 1,
+      currentRecommendationId: 1,
+      currentActivityId: 1,
+      currentEventId: 1
+    };
+    
+    // Seed some basic activity data
+    this.seedData();
+  }
+  
+  private seedData() {
+    const activities = [
+      {
+        id: 1,
+        name: "Cozy Garden Café",
+        description: "A charming café surrounded by beautiful gardens, perfect for intimate conversations.",
+        category: "dining",
+        rating: 4.5,
+        personalityMatch: "92% match",
+        distance: "0.8 miles",
+        imageUrl: "/api/placeholder/400/300"
+      },
+      {
+        id: 2,
+        name: "Sunset Beach Walk",
+        description: "Take a romantic stroll along the beach during golden hour.",
+        category: "outdoor",
+        rating: 4.8,
+        personalityMatch: "88% match",
+        distance: "1.2 miles",
+        imageUrl: "/api/placeholder/400/300"
+      },
+      {
+        id: 3,
+        name: "Art Gallery Downtown",
+        description: "Explore contemporary art together in this intimate gallery space.",
+        category: "cultural",
+        rating: 4.3,
+        personalityMatch: "85% match",
+        distance: "0.5 miles",
+        imageUrl: "/api/placeholder/400/300"
+      }
+    ];
+    
+    activities.forEach(activity => {
+      this.storage.activities.set(activity.id, activity);
+    });
+  }
+  
+  async getUser(id: number): Promise<User | undefined> {
+    return this.storage.users.get(id);
+  }
+  
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    for (const user of this.storage.users.values()) {
+      if (user.email === email) return user;
+    }
+    return undefined;
+  }
+  
+  async createUser(insertUser: InsertUser): Promise<User> {
+    const user: User = {
+      id: this.storage.currentUserId++,
+      email: insertUser.email,
+      name: insertUser.name,
+      partnerName: insertUser.partnerName,
+      relationshipDuration: insertUser.relationshipDuration,
+      passwordHash: insertUser.passwordHash,
+      personalityType: insertUser.personalityType,
+      personalityInsight: insertUser.personalityInsight,
+      preferences: insertUser.preferences,
+      location: insertUser.location,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+    
+    this.storage.users.set(user.id, user);
+    return user;
+  }
+  
+  async updateUser(id: number, updates: Partial<InsertUser>): Promise<User> {
+    const user = this.storage.users.get(id);
+    if (!user) throw new Error("User not found");
+    
+    const updatedUser = { ...user, ...updates, updatedAt: new Date() };
+    this.storage.users.set(id, updatedUser);
+    return updatedUser;
+  }
+  
+  async updateUserPreferences(id: number, preferences: any, location?: any): Promise<User> {
+    const user = this.storage.users.get(id);
+    if (!user) throw new Error("User not found");
+    
+    const updatedUser = { 
+      ...user, 
+      preferences, 
+      location,
+      updatedAt: new Date() 
+    };
+    this.storage.users.set(id, updatedUser);
+    return updatedUser;
+  }
+  
+  async saveAssessmentResponse(response: InsertAssessmentResponse): Promise<AssessmentResponse> {
+    const assessmentResponse: AssessmentResponse = {
+      id: this.storage.currentAssessmentId++,
+      userId: response.userId,
+      responses: response.responses,
+      personalityType: response.personalityType,
+      completedAt: new Date(),
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+    
+    this.storage.assessments.set(assessmentResponse.id, assessmentResponse);
+    return assessmentResponse;
+  }
+  
+  async getAssessmentByUserId(userId: number): Promise<AssessmentResponse | undefined> {
+    for (const assessment of this.storage.assessments.values()) {
+      if (assessment.userId === userId) return assessment;
+    }
+    return undefined;
+  }
+  
+  async getRecommendationsByUserId(userId: number): Promise<Recommendation[]> {
+    const recommendations: Recommendation[] = [];
+    for (const rec of this.storage.recommendations.values()) {
+      if (rec.userId === userId) recommendations.push(rec);
+    }
+    return recommendations;
+  }
+  
+  async createRecommendation(recommendation: InsertRecommendation): Promise<Recommendation> {
+    const newRecommendation: Recommendation = {
+      id: this.storage.currentRecommendationId++,
+      userId: recommendation.userId,
+      type: recommendation.type,
+      category: recommendation.category,
+      content: recommendation.content,
+      priority: recommendation.priority,
+      personalityMatch: recommendation.personalityMatch,
+      isRead: false,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+    
+    this.storage.recommendations.set(newRecommendation.id, newRecommendation);
+    return newRecommendation;
+  }
+  
+  async updateRecommendation(id: number, updates: Partial<InsertRecommendation>): Promise<Recommendation> {
+    const recommendation = this.storage.recommendations.get(id);
+    if (!recommendation) throw new Error("Recommendation not found");
+    
+    const updatedRecommendation = { ...recommendation, ...updates, updatedAt: new Date() };
+    this.storage.recommendations.set(id, updatedRecommendation);
+    return updatedRecommendation;
+  }
+  
+  async getActivities(): Promise<Activity[]> {
+    return Array.from(this.storage.activities.values());
+  }
+  
+  async getActivitiesByPersonality(personalityType: string): Promise<Activity[]> {
+    return Array.from(this.storage.activities.values());
+  }
+  
+  async createActivity(activity: InsertActivity): Promise<Activity> {
+    const newActivity: Activity = {
+      id: this.storage.currentActivityId++,
+      name: activity.name,
+      description: activity.description,
+      category: activity.category,
+      rating: activity.rating,
+      personalityMatch: activity.personalityMatch,
+      distance: activity.distance,
+      imageUrl: activity.imageUrl,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+    
+    this.storage.activities.set(newActivity.id, newActivity);
+    return newActivity;
+  }
+  
+  async getEventsByUserId(userId: number): Promise<ScheduledEvent[]> {
+    const events: ScheduledEvent[] = [];
+    for (const event of this.storage.events.values()) {
+      if (event.userId === userId) events.push(event);
+    }
+    return events;
+  }
+  
+  async createEvent(event: InsertScheduledEvent): Promise<ScheduledEvent> {
+    const newEvent: ScheduledEvent = {
+      id: this.storage.currentEventId++,
+      userId: event.userId,
+      title: event.title,
+      description: event.description,
+      scheduledDate: event.scheduledDate,
+      eventType: event.eventType,
+      location: event.location,
+      isCompleted: false,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+    
+    this.storage.events.set(newEvent.id, newEvent);
+    return newEvent;
+  }
+  
+  async updateEvent(id: number, updates: Partial<InsertScheduledEvent>): Promise<ScheduledEvent> {
+    const event = this.storage.events.get(id);
+    if (!event) throw new Error("Event not found");
+    
+    const updatedEvent = { ...event, ...updates, updatedAt: new Date() };
+    this.storage.events.set(id, updatedEvent);
+    return updatedEvent;
+  }
+  
+  async deleteEvent(id: number): Promise<void> {
+    this.storage.events.delete(id);
+  }
+  
+  async generateSampleRecommendations(userId: number, personalityType: string): Promise<void> {
+    // This will be handled by OpenAI integration
+  }
+}
+
+export const storage = new LocalStorageStorage();

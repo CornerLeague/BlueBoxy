@@ -71,55 +71,57 @@ export default function Assessment() {
   const { toast } = useToast();
 
   const userId = localStorage.getItem("userId");
-  const authToken = localStorage.getItem("authToken");
+  const userData = JSON.parse(localStorage.getItem("userData") || "null");
 
   const saveAssessmentMutation = useMutation({
     mutationFn: async (assessmentData: any) => {
-      // Use guest endpoint if no user ID AND no auth token (guest assessment)
-      const isGuest = !userId || !authToken;
-      const endpoint = isGuest ? "/api/assessment/guest" : "/api/assessment/responses";
-      try {
-        const response = await apiRequest("POST", endpoint, assessmentData);
-        return response.json();
-      } catch (error: any) {
-        // If authenticated endpoint fails with 403, try guest endpoint
-        if (error.message.includes("403") && !isGuest) {
-          // Clear invalid tokens
-          localStorage.removeItem("userId");
-          localStorage.removeItem("authToken");
-          const guestResponse = await apiRequest("POST", "/api/assessment/guest", assessmentData);
-          return guestResponse.json();
+      if (userId && userData) {
+        // Save to server for authenticated users
+        const response = await fetch('/api/assessment/responses', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            userId: parseInt(userId),
+            responses: assessmentData.responses,
+            personalityType: assessmentData.personalityType
+          })
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to save assessment');
         }
-        throw error;
+
+        // Update localStorage with new data
+        const updatedUserData = {
+          ...userData,
+          personalityType: assessmentData.personalityType,
+          assessmentCompleted: true,
+          assessmentResponses: assessmentData.responses
+        };
+        localStorage.setItem("userData", JSON.stringify(updatedUserData));
+
+        return response.json();
+      } else {
+        // Guest user - save to localStorage only
+        const onboardingData = JSON.parse(localStorage.getItem("onboardingData") || "{}");
+        const guestResults = {
+          personalityType: assessmentData.personalityType,
+          responses: assessmentData.responses,
+          onboardingData: onboardingData,
+          completedAt: new Date().toISOString()
+        };
+        localStorage.setItem("guestAssessmentResults", JSON.stringify(guestResults));
+        return guestResults;
       }
     },
     onSuccess: (data) => {
-      // Check if tokens are still valid after the request
-      const currentUserId = localStorage.getItem("userId");
-      const currentAuthToken = localStorage.getItem("authToken");
-      const isGuest = !currentUserId || !currentAuthToken;
-      
-      if (!isGuest) {
-        // Logged in user - save to database and go to dashboard
-        toast({
-          title: "Assessment Complete!",
-          description: "We've analyzed your partner's personality and are generating personalized recommendations.",
-        });
-        setLocation("/dashboard");
-      } else {
-        // Guest user - store results in localStorage and go to dashboard
-        const onboardingData = localStorage.getItem("onboardingData");
-        const guestData = {
-          ...data,
-          onboardingData: onboardingData ? JSON.parse(onboardingData) : null
-        };
-        localStorage.setItem("guestAssessmentResults", JSON.stringify(guestData));
-        toast({
-          title: "Assessment Complete!",
-          description: "Your personality analysis is ready! View your personalized recommendations.",
-        });
-        setLocation("/dashboard");
-      }
+      toast({
+        title: "Assessment Complete!",
+        description: "Your personality analysis is ready! View your personalized recommendations.",
+      });
+      setLocation("/dashboard");
     },
     onError: () => {
       toast({
