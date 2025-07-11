@@ -78,7 +78,8 @@ export default function Onboarding() {
     onSuccess: (data) => {
       // Save authentication data
       localStorage.setItem("userId", data.user.id.toString());
-      localStorage.setItem("authToken", data.token);
+      localStorage.setItem("isAuthenticated", "true");
+      localStorage.setItem("userData", JSON.stringify(data.user));
       
       // Clear onboarding data since account is created
       localStorage.removeItem("onboardingData");

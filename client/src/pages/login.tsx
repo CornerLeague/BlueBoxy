@@ -40,7 +40,8 @@ export default function Login() {
     },
     onSuccess: (data) => {
       localStorage.setItem("userId", data.user.id.toString());
-      localStorage.setItem("authToken", data.token);
+      localStorage.setItem("isAuthenticated", "true");
+      localStorage.setItem("userData", JSON.stringify(data.user));
       
       // Check if there are guest assessment results to save
       const guestResults = localStorage.getItem("guestAssessmentResults");

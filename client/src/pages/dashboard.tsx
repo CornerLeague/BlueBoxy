@@ -19,7 +19,7 @@ export default function Dashboard() {
   // Check if user is authenticated or has guest results
   const isGuest = !isAuthenticated && !!guestResults;
 
-  const { data: user } = useQuery({
+  const { data: user, isLoading: userLoading } = useQuery({
     queryKey: [`/api/user/profile`, userId],
     queryFn: () => fetch(`/api/user/profile?userId=${userId}`).then(res => res.json()),
     enabled: isAuthenticated && !!userId,
