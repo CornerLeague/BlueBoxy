@@ -107,7 +107,7 @@ export default function Assessment() {
         });
         setLocation("/dashboard");
       } else {
-        // Guest user - store results in localStorage and go to login
+        // Guest user - store results in localStorage and go to dashboard
         const onboardingData = localStorage.getItem("onboardingData");
         const guestData = {
           ...data,
@@ -116,9 +116,9 @@ export default function Assessment() {
         localStorage.setItem("guestAssessmentResults", JSON.stringify(guestData));
         toast({
           title: "Assessment Complete!",
-          description: "Create an account to save your results and get personalized recommendations.",
+          description: "Your personality analysis is ready! View your personalized recommendations.",
         });
-        setLocation("/login");
+        setLocation("/dashboard");
       }
     },
     onError: () => {
