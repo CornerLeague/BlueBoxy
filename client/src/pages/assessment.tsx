@@ -108,7 +108,12 @@ export default function Assessment() {
         setLocation("/dashboard");
       } else {
         // Guest user - store results in localStorage and go to login
-        localStorage.setItem("guestAssessmentResults", JSON.stringify(data));
+        const onboardingData = localStorage.getItem("onboardingData");
+        const guestData = {
+          ...data,
+          onboardingData: onboardingData ? JSON.parse(onboardingData) : null
+        };
+        localStorage.setItem("guestAssessmentResults", JSON.stringify(guestData));
         toast({
           title: "Assessment Complete!",
           description: "Create an account to save your results and get personalized recommendations.",

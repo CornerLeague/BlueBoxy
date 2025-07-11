@@ -46,12 +46,25 @@ export default function Login() {
       const guestResults = localStorage.getItem("guestAssessmentResults");
       if (guestResults) {
         const results = JSON.parse(guestResults);
+        
+        // Update user profile with onboarding data if available
+        if (results.onboardingData) {
+          apiRequest("PUT", "/api/user/profile", {
+            name: results.onboardingData.name,
+            partnerName: results.onboardingData.partnerName,
+            relationshipDuration: results.onboardingData.relationshipDuration
+          }).catch(() => {
+            // Silent fail for profile update
+          });
+        }
+        
         // Save guest assessment results to the user's account
         apiRequest("POST", "/api/assessment/responses", {
           responses: results.responses,
           assessmentType: "user"
         }).then(() => {
           localStorage.removeItem("guestAssessmentResults");
+          localStorage.removeItem("onboardingData");
           toast({
             title: "Welcome back!",
             description: "Your assessment results have been saved to your account.",

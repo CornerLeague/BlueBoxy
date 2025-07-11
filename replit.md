@@ -150,3 +150,4 @@ Changelog:
 - July 09, 2025. Added Get Started page - created welcome page with app features and added back button to login page
 - July 09, 2025. Updated Get Started flow - main button now directs to assessment, added "Have an account? Login here" text for existing users
 - July 09, 2025. Fixed guest assessment flow - added guest assessment endpoint for unauthenticated users, results saved to localStorage and transferred to user account on login
+- July 10, 2025. Added onboarding flow - created multi-step onboarding page to capture user name, partner name, and relationship duration before assessment
