@@ -632,4 +632,4 @@ class LocalStorageStorage implements IStorage {
   }
 }
 
-export const storage = new LocalStorageStorage();
+export const storage = new DatabaseStorage();
