@@ -2,7 +2,7 @@ export interface PreferenceQuestion {
   id: string;
   category: string;
   question: string;
-  type: 'multiple-choice' | 'scale' | 'boolean';
+  type: 'multiple-choice' | 'multi-select' | 'scale' | 'boolean';
   options?: string[];
   min?: number;
   max?: number;
@@ -10,7 +10,7 @@ export interface PreferenceQuestion {
 
 export interface PreferenceResponse {
   questionId: string;
-  value: string | number | boolean;
+  value: string | number | boolean | string[];
 }
 
 export const preferenceQuestions: PreferenceQuestion[] = [
@@ -18,15 +18,15 @@ export const preferenceQuestions: PreferenceQuestion[] = [
   {
     id: 'dining-cuisine',
     category: 'dining',
-    question: 'What type of cuisine do you both enjoy most?',
-    type: 'multiple-choice',
+    question: 'What types of cuisine do you both enjoy? (Select all that apply)',
+    type: 'multi-select',
     options: ['Italian', 'Asian', 'Mexican', 'American', 'Mediterranean', 'Indian', 'Thai', 'French', 'Fusion', 'Any cuisine']
   },
   {
     id: 'dining-atmosphere',
     category: 'dining',
-    question: 'What dining atmosphere do you prefer?',
-    type: 'multiple-choice',
+    question: 'What dining atmospheres do you prefer? (Select all that apply)',
+    type: 'multi-select',
     options: ['Fine dining', 'Casual restaurant', 'Cozy café', 'Outdoor patio', 'Rooftop dining', 'Food trucks', 'Home-style cooking', 'Trendy spots']
   },
   {
@@ -49,8 +49,8 @@ export const preferenceQuestions: PreferenceQuestion[] = [
   {
     id: 'outdoor-type',
     category: 'outdoor',
-    question: 'What type of outdoor activities do you enjoy?',
-    type: 'multiple-choice',
+    question: 'What types of outdoor activities do you enjoy? (Select all that apply)',
+    type: 'multi-select',
     options: ['Hiking', 'Beach activities', 'Parks & gardens', 'Cycling', 'Water sports', 'Picnics', 'Outdoor festivals', 'Nature walks', 'Adventure sports']
   },
   {
@@ -64,8 +64,8 @@ export const preferenceQuestions: PreferenceQuestion[] = [
   {
     id: 'entertainment-type',
     category: 'entertainment',
-    question: 'What type of entertainment do you both enjoy?',
-    type: 'multiple-choice',
+    question: 'What types of entertainment do you both enjoy? (Select all that apply)',
+    type: 'multi-select',
     options: ['Movies', 'Live music', 'Theater', 'Comedy shows', 'Museums', 'Art galleries', 'Concerts', 'Dance performances', 'Sports events']
   },
   {
@@ -88,8 +88,8 @@ export const preferenceQuestions: PreferenceQuestion[] = [
   {
     id: 'active-type',
     category: 'active',
-    question: 'What active dates interest you most?',
-    type: 'multiple-choice',
+    question: 'What active dates interest you most? (Select all that apply)',
+    type: 'multi-select',
     options: ['Gym/fitness', 'Dance classes', 'Sports', 'Rock climbing', 'Swimming', 'Yoga', 'Martial arts', 'Team activities', 'Individual challenges']
   },
 
@@ -97,8 +97,8 @@ export const preferenceQuestions: PreferenceQuestion[] = [
   {
     id: 'creative-type',
     category: 'creative',
-    question: 'What creative activities would you enjoy together?',
-    type: 'multiple-choice',
+    question: 'What creative activities would you enjoy together? (Select all that apply)',
+    type: 'multi-select',
     options: ['Art classes', 'Cooking workshops', 'Pottery', 'Photography', 'Music lessons', 'Writing', 'Crafts', 'DIY projects', 'Design activities']
   },
   {
