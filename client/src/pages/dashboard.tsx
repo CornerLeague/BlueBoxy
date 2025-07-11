@@ -178,7 +178,7 @@ export default function Dashboard() {
         <div className="flex items-center justify-between mb-6">
           <div>
             <h1 className="text-2xl font-bold">Good morning, {user.name}</h1>
-            <p className="text-muted-foreground">Here's how to make {user.partnerName} smile today</p>
+            <p className="text-muted-foreground">Here's how to make {user.partnerName?.split(' ')[0]} smile today</p>
           </div>
           <div className="w-12 h-12 bg-gradient-to-br from-primary to-blue-400 rounded-full flex items-center justify-center">
             <User className="w-6 h-6 text-white" />
