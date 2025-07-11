@@ -139,13 +139,76 @@ export default function Assessment() {
     }));
   };
 
+  const calculatePersonalityType = (responses: Record<number, string>): string => {
+    // Simple personality type calculation based on responses
+    const values = Object.values(responses);
+    
+    // Count traits based on responses
+    const traits = {
+      thoughtful: 0,
+      emotional: 0,
+      practical: 0,
+      social: 0,
+      independent: 0,
+      nurturing: 0,
+      adventurous: 0,
+      quiet: 0
+    };
+    
+    values.forEach(value => {
+      switch(value) {
+        case 'talk_through':
+        case 'thoughtful_gestures':
+        case 'small_groups':
+          traits.thoughtful++;
+          break;
+        case 'physical_touch':
+        case 'emotional_support':
+        case 'being_present':
+          traits.emotional++;
+          break;
+        case 'asks_for_input':
+        case 'solving_problems':
+          traits.practical++;
+          break;
+        case 'large_gatherings':
+          traits.social++;
+          break;
+        case 'observing':
+          traits.quiet++;
+          break;
+        default:
+          traits.thoughtful++;
+      }
+    });
+    
+    // Determine dominant trait
+    const maxTrait = Object.keys(traits).reduce((a, b) => traits[a] > traits[b] ? a : b);
+    
+    // Map traits to personality types
+    const personalityMap = {
+      thoughtful: "Thoughtful Harmonizer",
+      emotional: "Emotional Connector", 
+      practical: "Practical Supporter",
+      social: "Social Butterfly",
+      independent: "Independent Thinker",
+      nurturing: "Nurturing Caregiver",
+      adventurous: "Adventure Seeker",
+      quiet: "Quiet Confidant"
+    };
+    
+    return personalityMap[maxTrait] || "Thoughtful Harmonizer";
+  };
+
   const handleNext = () => {
     if (currentQuestion < assessmentQuestions.length - 1) {
       setCurrentQuestion(prev => prev + 1);
     } else {
       // Complete assessment
+      const personalityType = calculatePersonalityType(responses);
       saveAssessmentMutation.mutate({
         responses,
+        personalityType,
         assessmentType: "user"
       });
     }
