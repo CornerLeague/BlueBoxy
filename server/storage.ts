@@ -30,6 +30,7 @@ export interface IStorage {
   getUserByEmail(email: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   updateUser(id: number, updates: Partial<InsertUser>): Promise<User>;
+  updateUserPreferences(id: number, preferences: any, location?: any): Promise<User>;
   
   // Activities
   getActivities(): Promise<Activity[]>;
@@ -138,6 +139,20 @@ export class MemStorage implements IStorage {
       throw new Error('User not found');
     }
     const updatedUser = { ...user, ...updates };
+    this.users.set(id, updatedUser);
+    return updatedUser;
+  }
+
+  async updateUserPreferences(id: number, preferences: any, location?: any): Promise<User> {
+    const user = this.users.get(id);
+    if (!user) {
+      throw new Error('User not found');
+    }
+    const updatedUser = { 
+      ...user, 
+      preferences,
+      location: location || user.location
+    };
     this.users.set(id, updatedUser);
     return updatedUser;
   }
@@ -332,6 +347,18 @@ export class DatabaseStorage implements IStorage {
     const [user] = await db
       .update(users)
       .set(updates)
+      .where(eq(users.id, id))
+      .returning();
+    return user;
+  }
+
+  async updateUserPreferences(id: number, preferences: any, location?: any): Promise<User> {
+    const [user] = await db
+      .update(users)
+      .set({ 
+        preferences,
+        location: location || undefined
+      })
       .where(eq(users.id, id))
       .returning();
     return user;

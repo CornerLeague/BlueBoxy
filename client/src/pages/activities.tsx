@@ -3,11 +3,12 @@ import { useState } from "react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { ArrowLeft, MapPin, Star, Heart, ExternalLink } from "lucide-react";
+import { ArrowLeft, MapPin, Star, Heart, ExternalLink, Settings, Navigation } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 const activityCategories = [
   { id: "recommended", label: "Recommended", active: true },
+  { id: "location-based", label: "Near Me", active: false },
   { id: "dining", label: "Dining", active: false },
   { id: "outdoor", label: "Outdoor", active: false },
   { id: "cultural", label: "Cultural", active: false },
@@ -23,6 +24,15 @@ export default function Activities() {
     queryKey: ["/api/activities"],
   });
 
+  const { data: locationActivities = [], isLoading: isLoadingLocation } = useQuery({
+    queryKey: ["/api/recommendations/location-based"],
+    enabled: activeCategory === "location-based",
+  });
+
+  const { data: user } = useQuery({
+    queryKey: ["/api/user/profile"],
+  });
+
   const handleScheduleDate = (activityName: string) => {
     toast({
       title: "Date scheduled!",
@@ -30,10 +40,14 @@ export default function Activities() {
     });
   };
 
-  const filteredActivities = activities.filter((activity: any) => {
-    if (activeCategory === "recommended") return true;
-    return activity.category === activeCategory;
-  });
+  const filteredActivities = activeCategory === "location-based" 
+    ? locationActivities 
+    : activities.filter((activity: any) => {
+        if (activeCategory === "recommended") return true;
+        return activity.category === activeCategory;
+      });
+
+  const hasLocationPreferences = user?.location && user?.preferences;
 
   return (
     <div className="p-6 min-h-screen pb-24">
@@ -54,16 +68,39 @@ export default function Activities() {
         <div className="flex items-center justify-between">
           <div className="flex items-center">
             <div className="w-8 h-8 bg-gradient-to-br from-primary to-blue-500 rounded-full flex items-center justify-center mr-3 shadow-lg">
-              <MapPin className="w-4 h-4 text-white" />
+              {hasLocationPreferences ? (
+                <Navigation className="w-4 h-4 text-white" />
+              ) : (
+                <MapPin className="w-4 h-4 text-white" />
+              )}
             </div>
             <div>
-              <h3 className="font-semibold text-sm">San Francisco, CA</h3>
-              <p className="text-muted-foreground text-xs">{activities.length} recommendations nearby</p>
+              <h3 className="font-semibold text-sm">
+                {hasLocationPreferences ? "Location-Based Recommendations" : "Setup Location Preferences"}
+              </h3>
+              <p className="text-muted-foreground text-xs">
+                {hasLocationPreferences 
+                  ? `${activities.length} recommendations available`
+                  : "Get personalized local date ideas"
+                }
+              </p>
             </div>
           </div>
-          <button className="control-btn px-3 py-1 rounded-lg text-primary text-sm font-medium">
-            Change
-          </button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setLocation("/preferences")}
+            className="px-3 py-1 rounded-lg text-primary text-sm font-medium"
+          >
+            {hasLocationPreferences ? (
+              <>
+                <Settings className="w-3 h-3 mr-1" />
+                Settings
+              </>
+            ) : (
+              "Setup"
+            )}
+          </Button>
         </div>
       </div>
       
@@ -88,7 +125,24 @@ export default function Activities() {
       
       {/* Activity Cards */}
       <div className="space-y-4">
-        {isLoading ? (
+        {activeCategory === "location-based" && !hasLocationPreferences ? (
+          <div className="text-center py-12">
+            <div className="w-16 h-16 bg-gradient-to-br from-primary to-blue-500 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
+              <MapPin className="w-8 h-8 text-white" />
+            </div>
+            <h3 className="text-lg font-semibold mb-2">Setup Location Preferences</h3>
+            <p className="text-muted-foreground mb-4 max-w-sm mx-auto">
+              Get personalized date recommendations based on your location and preferences. 
+              We'll suggest activities within your preferred radius.
+            </p>
+            <Button 
+              onClick={() => setLocation("/preferences")}
+              className="bg-gradient-to-r from-primary to-blue-500 hover:from-primary/90 hover:to-blue-500/90"
+            >
+              Setup Preferences
+            </Button>
+          </div>
+        ) : (isLoading || (activeCategory === "location-based" && isLoadingLocation)) ? (
           <div className="text-center py-12">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
             <p className="text-muted-foreground mt-2">Loading activities...</p>

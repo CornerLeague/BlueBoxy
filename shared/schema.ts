@@ -12,6 +12,8 @@ export const users = pgTable("users", {
   relationshipDuration: text("relationship_duration"),
   assessmentCompleted: boolean("assessment_completed").default(false),
   personalityType: text("personality_type"),
+  preferences: jsonb("preferences"),
+  location: jsonb("location"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 

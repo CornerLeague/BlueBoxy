@@ -13,11 +13,12 @@ import Messages from "@/pages/messages";
 import Activities from "@/pages/activities";
 import Calendar from "@/pages/calendar";
 import Profile from "@/pages/profile";
+import Preferences from "@/pages/preferences";
 import NotFound from "@/pages/not-found";
 
 function Router() {
   const [location] = useLocation();
-  const showNavigation = !['/', '/onboarding', '/login', '/assessment'].includes(location);
+  const showNavigation = !['/', '/onboarding', '/login', '/assessment', '/preferences'].includes(location);
 
   return (
     <div className="relative">
@@ -31,6 +32,7 @@ function Router() {
         <Route path="/activities" component={Activities} />
         <Route path="/calendar" component={Calendar} />
         <Route path="/profile" component={Profile} />
+        <Route path="/preferences" component={Preferences} />
         <Route component={NotFound} />
       </Switch>
       {showNavigation && <Navigation />}

@@ -16,6 +16,7 @@ import {
   generatePersonalityInsight, 
   generatePersonalizedMessages, 
   generateActivityRecommendations,
+  generateLocationBasedRecommendations,
   type RecommendationContext 
 } from "./openai";
 
@@ -431,6 +432,76 @@ export async function registerRoutes(app: Express) {
     } catch (error) {
       console.error("Error generating activity recommendations:", error);
       res.status(500).json({ error: "Failed to generate activity recommendations" });
+    }
+  });
+
+  // User preferences route
+  app.post("/api/user/preferences", authenticateToken, async (req: any, res) => {
+    try {
+      const userId = req.user.userId;
+      const { preferences, location } = req.body;
+      
+      const user = await storage.updateUserPreferences(parseInt(userId), preferences, location);
+      
+      res.json({ 
+        message: "Preferences saved successfully",
+        user: {
+          id: user.id,
+          name: user.name,
+          preferences: user.preferences,
+          location: user.location
+        }
+      });
+    } catch (error) {
+      console.error("Error saving preferences:", error);
+      res.status(500).json({ error: "Failed to save preferences" });
+    }
+  });
+
+  // Location-based recommendations route
+  app.get("/api/recommendations/location-based", authenticateToken, async (req: any, res) => {
+    try {
+      const userId = req.user.userId;
+      const { radius = 25 } = req.query;
+      
+      const user = await storage.getUser(parseInt(userId));
+      
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      if (!user.location) {
+        return res.status(400).json({ error: "Location not set. Please complete preferences first." });
+      }
+
+      // Get assessment responses for context
+      const assessment = await storage.getAssessmentByUserId(parseInt(userId));
+      
+      if (!assessment || !user.personalityType) {
+        return res.status(400).json({ error: "Assessment not completed" });
+      }
+
+      // Generate location-based recommendations using OpenAI
+      const recommendationContext: RecommendationContext = {
+        userName: user.name,
+        partnerName: user.partnerName,
+        personalityType: user.personalityType,
+        relationshipDuration: user.relationshipDuration,
+        assessmentResponses: assessment.responses
+      };
+
+      const activities = await generateLocationBasedRecommendations(
+        recommendationContext,
+        user.location,
+        user.preferences,
+        parseInt(radius),
+        12
+      );
+      
+      res.json({ activities });
+    } catch (error) {
+      console.error("Error generating location-based recommendations:", error);
+      res.status(500).json({ error: "Failed to generate location-based recommendations" });
     }
   });
 

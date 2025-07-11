@@ -1,8 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { useLocation } from "wouter";
-import { MessageSquare, MapPin, Calendar, User, Copy, Share2 } from "lucide-react";
+import { useLocation, Link } from "wouter";
+import { MessageSquare, MapPin, Calendar, User, Copy, Share2, Settings } from "lucide-react";
 import { PersonalityCircle } from "@/components/personality-circle";
 import { RecommendationCard } from "@/components/recommendation-card";
 import { useToast } from "@/hooks/use-toast";
@@ -273,6 +273,16 @@ export default function Dashboard() {
               <User className="w-6 h-6 text-white" />
             </div>
             <span className="text-sm font-medium">Profile</span>
+          </button>
+          
+          <button 
+            onClick={() => setLocation("/preferences")}
+            className="control-btn p-4 rounded-2xl flex flex-col items-center h-auto border-0 hover:bg-[var(--hover-subtle)] hover:text-[var(--hover-text)] transition-colors"
+          >
+            <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center mb-2 shadow-lg">
+              <Settings className="w-6 h-6 text-white" />
+            </div>
+            <span className="text-sm font-medium">Preferences</span>
           </button>
         </div>
       </div>
