@@ -192,35 +192,28 @@ export async function generateLocationBasedRecommendations(
   userLocation: { latitude: number; longitude: number },
   preferences: any,
   radius: number = 25,
-  count: number = 10
+  count: number = 8
 ): Promise<any[]> {
-  const prompt = `Generate ${count} location-based date recommendations for ${context.userName} and ${context.partnerName} near latitude ${userLocation.latitude}, longitude ${userLocation.longitude} within a ${radius}km radius.
+  const prompt = `Generate ${count} location-based date recommendations for ${context.userName} and ${context.partnerName} near ${userLocation.latitude}, ${userLocation.longitude} within a ${radius}km radius.
 
 Context:
-- Partner's personality type: ${context.personalityType}
+- Personality type: ${context.personalityType}
 - Relationship duration: ${context.relationshipDuration}
-- Assessment responses: ${JSON.stringify(context.assessmentResponses)}
 - User preferences: ${JSON.stringify(preferences)}
 
-Based on their location and preferences, suggest specific real types of venues and activities they could find in their area. Include variety across all categories: dining, outdoor, entertainment, active, creative, and cultural.
+Create diverse recommendations across categories: dining, outdoor, entertainment, active, creative, cultural.
 
-Please respond with JSON in this format:
+Respond with JSON format:
 {
   "activities": [
     {
-      "id": number,
-      "title": "Activity/Venue Name",
-      "description": "Detailed description why this is perfect for them",
+      "id": 1,
+      "title": "Activity Name",
+      "description": "Why this is perfect for them",
       "category": "dining|outdoor|entertainment|active|creative|cultural",
-      "venueType": "Specific type of venue to look for",
-      "location": "General area description",
-      "duration": "Expected duration",
+      "duration": "1-2 hours",
       "budget": "low|medium|high",
-      "personalityMatch": "How this matches their personality and preferences",
-      "specialNotes": "What to look for or how to enhance the experience",
-      "timeOfDay": "best|morning|afternoon|evening|night",
-      "seasonality": "year-round|spring|summer|fall|winter",
-      "distance": "estimated distance category: very close|close|moderate|far"
+      "personalityMatch": "How this matches their personality"
     }
   ]
 }`;
@@ -229,18 +222,47 @@ Please respond with JSON in this format:
     const response = await openai.chat.completions.create({
       model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
       messages: [
-        { role: "system", content: "You are a local relationship expert who creates location-based date recommendations. Always respond with valid JSON and suggest real types of venues that exist in most areas." },
+        { role: "system", content: "You are a local relationship expert. Create location-based date recommendations. Always respond with valid JSON." },
         { role: "user", content: prompt }
       ],
       response_format: { type: "json_object" },
       temperature: 0.7,
-      max_tokens: 2000
+      max_tokens: 1500
     });
 
     const result = JSON.parse(response.choices[0].message.content || "{}");
     return result.activities || [];
   } catch (error) {
     console.error("Error generating location-based recommendations:", error);
-    return [];
+    // Return fallback recommendations if OpenAI fails
+    return [
+      {
+        id: 1,
+        title: "Cozy Coffee Shop Date",
+        description: "Perfect for intimate conversations and getting to know each other better",
+        category: "dining",
+        duration: "1-2 hours",
+        budget: "low",
+        personalityMatch: "Great for thoughtful personalities who enjoy meaningful conversations"
+      },
+      {
+        id: 2,
+        title: "Local Art Gallery Visit",
+        description: "Explore creativity together and discover new perspectives",
+        category: "cultural",
+        duration: "2-3 hours",
+        budget: "medium",
+        personalityMatch: "Ideal for couples who appreciate art and culture"
+      },
+      {
+        id: 3,
+        title: "Nature Walk in Local Park",
+        description: "Connect with nature and each other in a peaceful setting",
+        category: "outdoor",
+        duration: "1-2 hours",
+        budget: "low",
+        personalityMatch: "Perfect for those who find peace in nature and outdoor activities"
+      }
+    ];
   }
 }

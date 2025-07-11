@@ -24,13 +24,18 @@ export default function Activities() {
     queryKey: ["/api/activities"],
   });
 
-  const { data: locationActivities = [], isLoading: isLoadingLocation } = useQuery({
-    queryKey: ["/api/recommendations/location-based"],
-    enabled: activeCategory === "location-based",
+  const userId = localStorage.getItem("userId");
+  
+  const { data: user } = useQuery({
+    queryKey: ["/api/user/profile", userId],
+    queryFn: () => fetch(`/api/user/profile?userId=${userId}`).then(res => res.json()),
+    enabled: !!userId,
   });
 
-  const { data: user } = useQuery({
-    queryKey: ["/api/user/profile"],
+  const { data: locationActivities = [], isLoading: isLoadingLocation } = useQuery({
+    queryKey: ["/api/recommendations/location-based", userId],
+    queryFn: () => fetch(`/api/recommendations/location-based?userId=${userId}&radius=25`).then(res => res.json()),
+    enabled: activeCategory === "location-based" && !!userId && !!user?.location,
   });
 
   const handleScheduleDate = (activityName: string) => {
@@ -41,7 +46,7 @@ export default function Activities() {
   };
 
   const filteredActivities = activeCategory === "location-based" 
-    ? locationActivities 
+    ? locationActivities?.activities || [] 
     : activities.filter((activity: any) => {
         if (activeCategory === "recommended") return true;
         return activity.category === activeCategory;

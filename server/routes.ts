@@ -105,7 +105,13 @@ export async function registerRoutes(app: Express) {
   // User profile routes - simplified without authentication middleware
   app.get("/api/user/profile", async (req, res) => {
     try {
-      const userId = parseInt(req.query.userId as string);
+      const userIdStr = req.query.userId as string;
+      const userId = parseInt(userIdStr);
+      
+      if (isNaN(userId)) {
+        return res.status(400).json({ error: "Invalid user ID" });
+      }
+      
       const user = await storage.getUser(userId);
       
       if (!user) {
@@ -196,7 +202,13 @@ export async function registerRoutes(app: Express) {
   // Remove authenticateToken for recommendations endpoints
   app.get("/api/recommendations/messages", async (req, res) => {
     try {
-      const userId = parseInt(req.query.userId as string);
+      const userIdStr = req.query.userId as string;
+      const userId = parseInt(userIdStr);
+      
+      if (isNaN(userId)) {
+        return res.status(400).json({ error: "Invalid user ID" });
+      }
+      
       const user = await storage.getUser(userId);
       const assessment = await storage.getAssessmentByUserId(userId);
       
@@ -269,7 +281,13 @@ export async function registerRoutes(app: Express) {
   // Update the remaining routes to remove authenticateToken middleware
   app.get("/api/recommendations/activities", async (req, res) => {
     try {
-      const userId = parseInt(req.query.userId as string);
+      const userIdStr = req.query.userId as string;
+      const userId = parseInt(userIdStr);
+      
+      if (isNaN(userId)) {
+        return res.status(400).json({ error: "Invalid user ID" });
+      }
+      
       const user = await storage.getUser(userId);
       const assessment = await storage.getAssessmentByUserId(userId);
       
@@ -296,8 +314,13 @@ export async function registerRoutes(app: Express) {
 
   app.get("/api/recommendations/location-based", async (req, res) => {
     try {
-      const userId = parseInt(req.query.userId as string);
+      const userIdStr = req.query.userId as string;
+      const userId = parseInt(userIdStr);
       const { radius = 25 } = req.query;
+      
+      if (isNaN(userId)) {
+        return res.status(400).json({ error: "Invalid user ID" });
+      }
       
       const user = await storage.getUser(userId);
       const assessment = await storage.getAssessmentByUserId(userId);
