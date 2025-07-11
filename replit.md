@@ -153,3 +153,4 @@ Changelog:
 - July 10, 2025. Added onboarding flow - created multi-step onboarding page to capture user name, partner name, and relationship duration before assessment
 - July 11, 2025. Updated assessment completion flow - users now go directly to dashboard after completing assessment instead of being redirected to login, with guest dashboard showing assessment results and encouraging account creation
 - July 11, 2025. Enhanced onboarding with account creation - added email and password setup steps to onboarding flow, users now create accounts during onboarding and go directly to authenticated assessment
+- July 11, 2025. Integrated OpenAI for dynamic recommendations - connected OpenAI API to generate personalized messages, personality insights, and activity recommendations based on actual assessment responses and user data

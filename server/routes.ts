@@ -12,6 +12,12 @@ import {
 import { z } from "zod";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
+import { 
+  generatePersonalityInsight, 
+  generatePersonalizedMessages, 
+  generateActivityRecommendations,
+  type RecommendationContext 
+} from "./openai";
 
 const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key";
 
@@ -124,6 +130,19 @@ export async function registerRoutes(app: Express) {
       if (!user) {
         return res.status(404).json({ error: "User not found" });
       }
+
+      // If user has completed assessment, generate personality insights
+      let personalityInsight = null;
+      if (user.personalityType && user.assessmentCompleted) {
+        const assessment = await storage.getAssessmentByUserId(parseInt(req.user.userId));
+        if (assessment) {
+          personalityInsight = await generatePersonalityInsight(
+            user.personalityType,
+            user.partnerName,
+            assessment.responses
+          );
+        }
+      }
       
       res.json({
         id: user.id,
@@ -132,9 +151,11 @@ export async function registerRoutes(app: Express) {
         partnerName: user.partnerName,
         relationshipDuration: user.relationshipDuration,
         assessmentCompleted: user.assessmentCompleted,
-        personalityType: user.personalityType
+        personalityType: user.personalityType,
+        personalityInsight
       });
     } catch (error) {
+      console.error("Error fetching user profile:", error);
       res.status(500).json({ error: error.message });
     }
   });
@@ -321,13 +342,49 @@ export async function registerRoutes(app: Express) {
   app.get("/api/recommendations/messages", authenticateToken, async (req: any, res) => {
     try {
       const { messageType, context, timeOfDay } = req.query;
+      const userId = req.user.userId;
       
-      const user = await storage.getUser(req.user.userId);
-      const recommendations = await storage.getRecommendationsByUserId(req.user.userId);
+      const user = await storage.getUser(userId);
       
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      // Get assessment responses for context
+      const assessment = await storage.getAssessmentByUserId(userId);
+      
+      if (!assessment || !user.personalityType) {
+        return res.status(400).json({ error: "Assessment not completed" });
+      }
+
+      // Generate dynamic recommendations using OpenAI
+      const recommendationContext: RecommendationContext = {
+        userName: user.name,
+        partnerName: user.partnerName,
+        personalityType: user.personalityType,
+        relationshipDuration: user.relationshipDuration,
+        assessmentResponses: assessment.responses
+      };
+
+      const messages = await generatePersonalizedMessages(recommendationContext, 5);
+      
+      // Format as recommendation objects
+      const recommendations = messages.map((content, index) => ({
+        id: index + 1,
+        userId: userId,
+        type: "message",
+        category: index === 0 ? "romantic" : index === 1 ? "appreciation" : index === 2 ? "playful" : index === 3 ? "supportive" : "daily",
+        content,
+        priority: index < 2 ? "high" : index < 4 ? "medium" : "low",
+        personalityMatch: user.personalityType,
+        createdAt: new Date().toISOString(),
+        isRead: false
+      }));
+
       res.json(recommendations);
     } catch (error) {
-      res.status(500).json({ error: error.message });
+      console.error("Error generating recommendations:", error);
+      res.status(500).json({ error: "Failed to generate recommendations" });
     }
   });
 
@@ -344,18 +401,36 @@ export async function registerRoutes(app: Express) {
   app.get("/api/recommendations/activities", authenticateToken, async (req: any, res) => {
     try {
       const { location, budget, timeframe, activityType } = req.query;
+      const userId = req.user.userId;
       
-      const user = await storage.getUser(req.user.userId);
-      const activities = await generateActivityRecommendations(user, {
-        location,
-        budget,
-        timeframe,
-        activityType
-      });
+      const user = await storage.getUser(parseInt(userId));
+      
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      // Get assessment responses for context
+      const assessment = await storage.getAssessmentByUserId(parseInt(userId));
+      
+      if (!assessment || !user.personalityType) {
+        return res.status(400).json({ error: "Assessment not completed" });
+      }
+
+      // Generate dynamic activity recommendations using OpenAI
+      const recommendationContext: RecommendationContext = {
+        userName: user.name,
+        partnerName: user.partnerName,
+        personalityType: user.personalityType,
+        relationshipDuration: user.relationshipDuration,
+        assessmentResponses: assessment.responses
+      };
+
+      const activities = await generateActivityRecommendations(recommendationContext, 5);
       
       res.json({ activities });
     } catch (error) {
-      res.status(500).json({ error: error.message });
+      console.error("Error generating activity recommendations:", error);
+      res.status(500).json({ error: "Failed to generate activity recommendations" });
     }
   });
 

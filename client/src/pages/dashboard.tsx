@@ -194,8 +194,8 @@ export default function Dashboard() {
             </span>
           </div>
           <p className="text-muted-foreground text-sm mb-6">
-            {user.partnerName} values meaningful connections and appreciates thoughtful gestures. 
-            They respond well to quality time and words of affirmation.
+            {user.personalityInsight?.description || 
+             `${user.partnerName} values meaningful connections and appreciates thoughtful gestures. They respond well to quality time and words of affirmation.`}
           </p>
           
           <div className="flex items-center justify-between">
