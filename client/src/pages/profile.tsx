@@ -11,16 +11,17 @@ export default function Profile() {
   const token = localStorage.getItem("authToken");
 
   const { data: user } = useQuery({
-    queryKey: [`/api/user/profile`],
-    enabled: !!userId && !!token,
+    queryKey: [`/api/user/profile`, userId],
+    queryFn: () => fetch(`/api/user/profile?userId=${userId}`).then(res => res.json()),
+    enabled: !!userId,
   });
 
   const { data: assessment } = useQuery({
     queryKey: [`/api/assessments/user/${userId}`],
-    enabled: !!userId && !!token,
+    enabled: !!userId,
   });
 
-  if (!userId || !token) {
+  if (!userId) {
     return (
       <div className="p-6 min-h-screen flex items-center justify-center">
         <div className="text-center">

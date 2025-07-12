@@ -3,7 +3,8 @@ import { useState } from "react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { ArrowLeft, Plus, Clock, ChevronLeft, ChevronRight } from "lucide-react";
+import { ArrowLeft, Plus, Clock, ChevronLeft, ChevronRight, Calendar as CalendarIcon } from "lucide-react";
+import { CalendarProviders } from "@/components/calendar-providers";
 
 const mockEvents = [
   {
@@ -35,6 +36,7 @@ const mockEvents = [
 export default function Calendar() {
   const [, setLocation] = useLocation();
   const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [showProviders, setShowProviders] = useState(false);
   const userId = localStorage.getItem("userId");
 
   const { data: events = mockEvents } = useQuery({
@@ -107,7 +109,26 @@ export default function Calendar() {
           <ArrowLeft className="w-5 h-5" />
         </Button>
         <h2 className="text-xl font-semibold">Relationship Calendar</h2>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setShowProviders(!showProviders)}
+          className="ml-auto"
+        >
+          <CalendarIcon className="w-4 h-4 mr-2" />
+          {showProviders ? 'Hide' : 'Connect'} Calendar
+        </Button>
       </div>
+      
+      {/* Calendar Providers */}
+      {showProviders && (
+        <div className="mb-6">
+          <CalendarProviders 
+            userId={userId!} 
+            onProviderConnected={() => setShowProviders(false)}
+          />
+        </div>
+      )}
       
       {/* Calendar Header */}
       <div className="glass-card rounded-2xl p-4 mb-6">

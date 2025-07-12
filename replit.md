@@ -67,8 +67,11 @@ BlueBoxy is a modern relationship management application built with React and Ex
 ### Calendar and Scheduling
 - Event management for relationship activities
 - Date scheduling with reminders
-- Calendar integration for planned activities
+- **Multi-provider calendar integration** (Google Calendar, Outlook, Apple Calendar, Yahoo Calendar)
+- OAuth-based authentication for calendar providers
+- Automatic calendar sync with external providers
 - Event type categorization (date, activity, special)
+- Calendar provider selection and management interface
 
 ## Data Flow
 
@@ -160,3 +163,4 @@ Changelog:
 - July 11, 2025. Complete transition to localStorage-based storage - removed all database dependencies and JWT authentication, switched to storing all user data (account setup, assessment responses, preferences, location data) in browser localStorage for completely client-side data persistence, simplified API endpoints to work with localStorage architecture
 - July 11, 2025. Hybrid database + localStorage architecture - restored PostgreSQL database for persistent user profile storage with unique user IDs, maintains localStorage for client-side session management, ensures no duplicate emails in database, stores user information (name, email, password, partner name, assessment scores) under unique user profiles
 - July 11, 2025. Fixed authentication and database integration - resolved database schema issues by adding missing columns (password_hash, personality_insight, preferences, location), fixed authentication flow to properly store user session data in localStorage, corrected assessment saving functionality with proper DatabaseStorage methods, ensured dashboard displays authenticated user data from database
+- July 12, 2025. Multi-provider calendar integration - added comprehensive calendar provider system supporting Google Calendar, Outlook, Apple Calendar, and Yahoo Calendar with OAuth authentication, calendar sync functionality, provider selection interface, and secure token management for external calendar access
