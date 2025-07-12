@@ -16,6 +16,7 @@ import {
   generateLocationBasedRecommendations,
   type RecommendationContext 
 } from "./openai";
+import { calendarProviderManager } from "./calendar-providers";
 
 // Remove JWT authentication - use simple session management
 
@@ -353,6 +354,120 @@ export async function registerRoutes(app: Express) {
     } catch (error) {
       console.error("Error generating location-based recommendations:", error);
       res.status(500).json({ error: "Failed to generate location-based recommendations" });
+    }
+  });
+
+  // Calendar Provider Routes
+  app.get("/api/calendar/providers", async (req, res) => {
+    try {
+      const userId = req.query.userId as string;
+      if (!userId) {
+        return res.status(400).json({ error: "User ID is required" });
+      }
+      
+      const providers = await calendarProviderManager.getProviders(userId);
+      res.json(providers);
+    } catch (error) {
+      console.error("Error fetching calendar providers:", error);
+      res.status(500).json({ error: "Failed to fetch calendar providers" });
+    }
+  });
+
+  app.post("/api/calendar/connect/:providerId", async (req, res) => {
+    try {
+      const { providerId } = req.params;
+      const { userId } = req.body;
+      
+      if (!userId) {
+        return res.status(400).json({ error: "User ID is required" });
+      }
+      
+      const authUrl = await calendarProviderManager.generateAuthUrl(providerId, userId);
+      res.json({ authUrl });
+    } catch (error) {
+      console.error("Error connecting calendar provider:", error);
+      res.status(500).json({ error: error.message || "Failed to connect calendar provider" });
+    }
+  });
+
+  app.get("/api/calendar/callback/:providerId", async (req, res) => {
+    try {
+      const { providerId } = req.params;
+      const { code, state } = req.query;
+      
+      if (!code || !state) {
+        return res.status(400).send("Missing code or state parameter");
+      }
+      
+      const [userId] = (state as string).split(':');
+      
+      try {
+        await calendarProviderManager.exchangeCodeForToken(providerId, code as string, userId);
+        
+        // Send success message to parent window
+        res.send(`
+          <script>
+            window.opener.postMessage({
+              type: 'calendar-auth-success',
+              provider: { id: '${providerId}' }
+            }, '${process.env.BASE_URL || 'http://localhost:5000'}');
+            window.close();
+          </script>
+        `);
+      } catch (error) {
+        console.error("Token exchange error:", error);
+        res.send(`
+          <script>
+            window.opener.postMessage({
+              type: 'calendar-auth-error',
+              error: '${error.message}'
+            }, '${process.env.BASE_URL || 'http://localhost:5000'}');
+            window.close();
+          </script>
+        `);
+      }
+    } catch (error) {
+      console.error("Calendar callback error:", error);
+      res.status(500).send("Authentication failed");
+    }
+  });
+
+  app.post("/api/calendar/disconnect/:providerId", async (req, res) => {
+    try {
+      const { providerId } = req.params;
+      const { userId } = req.body;
+      
+      if (!userId) {
+        return res.status(400).json({ error: "User ID is required" });
+      }
+      
+      await calendarProviderManager.disconnectProvider(providerId, userId);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error disconnecting calendar provider:", error);
+      res.status(500).json({ error: error.message || "Failed to disconnect calendar provider" });
+    }
+  });
+
+  app.get("/api/calendar/events/:providerId", async (req, res) => {
+    try {
+      const { providerId } = req.params;
+      const { userId, startDate, endDate } = req.query;
+      
+      if (!userId) {
+        return res.status(400).json({ error: "User ID is required" });
+      }
+      
+      const events = await calendarProviderManager.getEvents(
+        providerId,
+        userId as string,
+        startDate as string,
+        endDate as string
+      );
+      res.json(events);
+    } catch (error) {
+      console.error("Error fetching calendar events:", error);
+      res.status(500).json({ error: error.message || "Failed to fetch calendar events" });
     }
   });
 
