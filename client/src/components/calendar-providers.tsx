@@ -38,7 +38,8 @@ export function CalendarProviders({ userId, onProviderConnected }: CalendarProvi
 
   const connectMutation = useMutation({
     mutationFn: async (providerId: string) => {
-      const response = await apiRequest(`/api/calendar/connect/${providerId}`, {
+      const response = await apiRequest({
+        url: `/api/calendar/connect/${providerId}`,
         method: "POST",
         body: { userId },
       });
@@ -71,7 +72,8 @@ export function CalendarProviders({ userId, onProviderConnected }: CalendarProvi
 
   const disconnectMutation = useMutation({
     mutationFn: async (providerId: string) => {
-      return await apiRequest(`/api/calendar/disconnect/${providerId}`, {
+      return await apiRequest({
+        url: `/api/calendar/disconnect/${providerId}`,
         method: "POST",
         body: { userId },
       });

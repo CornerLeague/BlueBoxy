@@ -8,12 +8,25 @@ async function throwIfResNotOk(res: Response) {
 }
 
 export async function apiRequest(
-  method: string,
-  url: string,
-  data?: unknown | undefined,
-): Promise<Response> {
+  urlOrConfig: string | { url: string, method?: string, body?: unknown },
+  options?: { method?: string, body?: unknown },
+): Promise<any> {
+  let url: string;
+  let method: string;
+  let body: unknown;
+
+  if (typeof urlOrConfig === 'string') {
+    url = urlOrConfig;
+    method = options?.method || 'GET';
+    body = options?.body;
+  } else {
+    url = urlOrConfig.url;
+    method = urlOrConfig.method || 'GET';
+    body = urlOrConfig.body;
+  }
+
   const token = localStorage.getItem("authToken");
-  const headers: any = data ? { "Content-Type": "application/json" } : {};
+  const headers: any = body ? { "Content-Type": "application/json" } : {};
   
   if (token) {
     headers.Authorization = `Bearer ${token}`;
@@ -22,12 +35,12 @@ export async function apiRequest(
   const res = await fetch(url, {
     method,
     headers,
-    body: data ? JSON.stringify(data) : undefined,
+    body: body ? JSON.stringify(body) : undefined,
     credentials: "include",
   });
 
   await throwIfResNotOk(res);
-  return res;
+  return res.json();
 }
 
 type UnauthorizedBehavior = "returnNull" | "throw";

@@ -157,6 +157,11 @@ export async function registerRoutes(app: Express) {
     try {
       const { userId, responses, personalityType } = req.body;
       
+      // Validate userId
+      if (!userId || isNaN(parseInt(userId))) {
+        return res.status(400).json({ error: "Invalid user ID" });
+      }
+      
       const assessmentData = {
         userId: parseInt(userId),
         responses,

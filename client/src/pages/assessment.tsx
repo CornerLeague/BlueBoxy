@@ -72,18 +72,29 @@ export default function Assessment() {
 
   const userId = localStorage.getItem("userId");
   const userData = JSON.parse(localStorage.getItem("userData") || "null");
+  
+  // Debug logging
+  console.log("Assessment page - userId:", userId, "userData:", userData);
 
   const saveAssessmentMutation = useMutation({
     mutationFn: async (assessmentData: any) => {
       if (userId && userData) {
         // Save to server for authenticated users
+        const userIdNumber = parseInt(userId);
+        
+        // Validate userId before sending
+        if (isNaN(userIdNumber)) {
+          console.error("Invalid userId:", userId);
+          throw new Error("Invalid user ID");
+        }
+        
         const response = await fetch('/api/assessment/responses', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            userId: parseInt(userId),
+            userId: userIdNumber,
             responses: assessmentData.responses,
             personalityType: assessmentData.personalityType
           })
