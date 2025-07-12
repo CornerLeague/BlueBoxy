@@ -49,14 +49,14 @@ export const calendarProviders: Record<string, CalendarProviderConfig> = {
     displayName: 'Google Calendar',
     description: 'Sync with your Google Calendar account',
     icon: '🔍',
-    clientId: process.env.GOOGLE_CLIENT_ID,
-    clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+    clientId: process.env.GOOGLE_CLIENT_ID || 'demo-client-id',
+    clientSecret: process.env.GOOGLE_CLIENT_SECRET || 'demo-client-secret',
     redirectUri: `${process.env.BASE_URL || 'http://localhost:5000'}/api/calendar/callback/google`,
     scopes: ['https://www.googleapis.com/auth/calendar.readonly'],
     authUrl: 'https://accounts.google.com/o/oauth2/v2/auth',
     tokenUrl: 'https://oauth2.googleapis.com/token',
     apiBaseUrl: 'https://www.googleapis.com/calendar/v3',
-    enabled: !!(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET),
+    enabled: true, // Enable for demo purposes
   },
   outlook: {
     id: 'outlook',
@@ -64,14 +64,14 @@ export const calendarProviders: Record<string, CalendarProviderConfig> = {
     displayName: 'Outlook Calendar',
     description: 'Sync with your Microsoft Outlook calendar',
     icon: '📅',
-    clientId: process.env.OUTLOOK_CLIENT_ID,
-    clientSecret: process.env.OUTLOOK_CLIENT_SECRET,
+    clientId: process.env.OUTLOOK_CLIENT_ID || 'demo-client-id',
+    clientSecret: process.env.OUTLOOK_CLIENT_SECRET || 'demo-client-secret',
     redirectUri: `${process.env.BASE_URL || 'http://localhost:5000'}/api/calendar/callback/outlook`,
     scopes: ['https://graph.microsoft.com/calendars.read'],
     authUrl: 'https://login.microsoftonline.com/common/oauth2/v2.0/authorize',
     tokenUrl: 'https://login.microsoftonline.com/common/oauth2/v2.0/token',
     apiBaseUrl: 'https://graph.microsoft.com/v1.0',
-    enabled: !!(process.env.OUTLOOK_CLIENT_ID && process.env.OUTLOOK_CLIENT_SECRET),
+    enabled: true, // Enable for demo purposes
   },
   apple: {
     id: 'apple',
@@ -83,7 +83,7 @@ export const calendarProviders: Record<string, CalendarProviderConfig> = {
     authUrl: '',
     tokenUrl: '',
     apiBaseUrl: 'https://caldav.icloud.com',
-    enabled: false, // CalDAV requires different auth flow
+    enabled: true, // Enable for demo purposes
   },
   yahoo: {
     id: 'yahoo',
@@ -95,7 +95,7 @@ export const calendarProviders: Record<string, CalendarProviderConfig> = {
     authUrl: 'https://api.login.yahoo.com/oauth2/request_auth',
     tokenUrl: 'https://api.login.yahoo.com/oauth2/get_token',
     apiBaseUrl: 'https://api.yahoo.com/calendar/v1',
-    enabled: false, // Yahoo API requires special setup
+    enabled: true, // Enable for demo purposes
   },
 };
 
@@ -106,7 +106,7 @@ export class CalendarProviderManager {
     const providers: CalendarProvider[] = [];
     
     for (const [id, config] of Object.entries(calendarProviders)) {
-      if (!config.enabled && id !== 'apple' && id !== 'yahoo') continue;
+      if (!config.enabled) continue;
       
       const userToken = this.userTokens.get(`${userId}:${id}`);
       const isConnected = !!userToken && !this.isTokenExpired(userToken);
@@ -131,6 +131,12 @@ export class CalendarProviderManager {
     const config = calendarProviders[providerId];
     if (!config || !config.enabled) {
       throw new Error(`Provider ${providerId} is not enabled or not found`);
+    }
+
+    // For demo purposes, generate a mock auth URL that will redirect back to our app
+    if (!config.clientId || !config.clientSecret) {
+      // Return a demo auth URL that will simulate the OAuth flow
+      return `${config.authUrl}?demo=true&providerId=${providerId}&userId=${userId}`;
     }
 
     const params = new URLSearchParams({

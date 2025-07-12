@@ -123,10 +123,12 @@ export default function Calendar() {
       {/* Calendar Providers */}
       {showProviders && (
         <div className="mb-6">
-          <CalendarProviders 
-            userId={userId!} 
-            onProviderConnected={() => setShowProviders(false)}
-          />
+          {userId && (
+            <CalendarProviders 
+              userId={userId} 
+              onProviderConnected={() => setShowProviders(false)}
+            />
+          )}
         </div>
       )}
       
