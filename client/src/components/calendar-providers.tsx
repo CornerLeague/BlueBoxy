@@ -32,18 +32,17 @@ export function CalendarProviders({ userId, onProviderConnected }: CalendarProvi
 
   const { data: providers = [], isLoading } = useQuery({
     queryKey: ["/api/calendar/providers", userId],
-    queryFn: () => apiRequest(`/api/calendar/providers?userId=${userId}`),
+    queryFn: async () => {
+      const response = await apiRequest("GET", `/api/calendar/providers?userId=${userId}`);
+      return response.json();
+    },
     enabled: !!userId,
   });
 
   const connectMutation = useMutation({
     mutationFn: async (providerId: string) => {
-      const response = await apiRequest({
-        url: `/api/calendar/connect/${providerId}`,
-        method: "POST",
-        body: { userId },
-      });
-      return response;
+      const response = await apiRequest("POST", `/api/calendar/connect/${providerId}`, { userId });
+      return response.json();
     },
     onSuccess: (data, providerId) => {
       if (data.authUrl) {
@@ -72,11 +71,8 @@ export function CalendarProviders({ userId, onProviderConnected }: CalendarProvi
 
   const disconnectMutation = useMutation({
     mutationFn: async (providerId: string) => {
-      return await apiRequest({
-        url: `/api/calendar/disconnect/${providerId}`,
-        method: "POST",
-        body: { userId },
-      });
+      const response = await apiRequest("POST", `/api/calendar/disconnect/${providerId}`, { userId });
+      return response.json();
     },
     onSuccess: (data, providerId) => {
       toast({
