@@ -20,14 +20,14 @@ export const preferenceQuestions: PreferenceQuestion[] = [
     category: 'dining',
     question: 'What types of cuisine do you both enjoy? (Select all that apply)',
     type: 'multi-select',
-    options: ['Italian', 'Asian', 'Mexican', 'American', 'Mediterranean', 'Indian', 'Thai', 'French', 'Fusion', 'Any cuisine']
+    options: ['Italian', 'Asian', 'Mexican', 'American', 'Mediterranean', 'Indian', 'Thai', 'French', 'Fusion', 'Any cuisine', 'Others']
   },
   {
     id: 'dining-atmosphere',
     category: 'dining',
     question: 'What dining atmospheres do you prefer? (Select all that apply)',
     type: 'multi-select',
-    options: ['Fine dining', 'Casual restaurant', 'Cozy café', 'Outdoor patio', 'Rooftop dining', 'Food trucks', 'Home-style cooking', 'Trendy spots']
+    options: ['Fine dining', 'Casual restaurant', 'Cozy café', 'Outdoor patio', 'Rooftop dining', 'Food trucks', 'Home-style cooking', 'Trendy spots', 'Others']
   },
   {
     id: 'dining-budget',
@@ -51,7 +51,7 @@ export const preferenceQuestions: PreferenceQuestion[] = [
     category: 'outdoor',
     question: 'What types of outdoor activities do you enjoy? (Select all that apply)',
     type: 'multi-select',
-    options: ['Hiking', 'Beach activities', 'Parks & gardens', 'Cycling', 'Water sports', 'Picnics', 'Outdoor festivals', 'Nature walks', 'Adventure sports']
+    options: ['Hiking', 'Beach activities', 'Parks & gardens', 'Cycling', 'Water sports', 'Picnics', 'Outdoor festivals', 'Nature walks', 'Adventure sports', 'Others']
   },
   {
     id: 'outdoor-weather',
@@ -66,7 +66,7 @@ export const preferenceQuestions: PreferenceQuestion[] = [
     category: 'entertainment',
     question: 'What types of entertainment do you both enjoy? (Select all that apply)',
     type: 'multi-select',
-    options: ['Movies', 'Live music', 'Theater', 'Comedy shows', 'Museums', 'Art galleries', 'Concerts', 'Dance performances', 'Sports events']
+    options: ['Movies', 'Live music', 'Theater', 'Comedy shows', 'Museums', 'Art galleries', 'Concerts', 'Dance performances', 'Sports events', 'Others']
   },
   {
     id: 'entertainment-crowd',
@@ -90,7 +90,7 @@ export const preferenceQuestions: PreferenceQuestion[] = [
     category: 'active',
     question: 'What active dates interest you most? (Select all that apply)',
     type: 'multi-select',
-    options: ['Gym/fitness', 'Dance classes', 'Sports', 'Rock climbing', 'Swimming', 'Yoga', 'Martial arts', 'Team activities', 'Individual challenges']
+    options: ['Gym/fitness', 'Dance classes', 'Sports', 'Rock climbing', 'Swimming', 'Yoga', 'Martial arts', 'Team activities', 'Individual challenges', 'Others']
   },
 
   // Creative Preferences
@@ -99,7 +99,7 @@ export const preferenceQuestions: PreferenceQuestion[] = [
     category: 'creative',
     question: 'What creative activities would you enjoy together? (Select all that apply)',
     type: 'multi-select',
-    options: ['Art classes', 'Cooking workshops', 'Pottery', 'Photography', 'Music lessons', 'Writing', 'Crafts', 'DIY projects', 'Design activities']
+    options: ['Art classes', 'Cooking workshops', 'Pottery', 'Photography', 'Music lessons', 'Writing', 'Crafts', 'DIY projects', 'Design activities', 'Others']
   },
   {
     id: 'creative-skill',
@@ -113,9 +113,9 @@ export const preferenceQuestions: PreferenceQuestion[] = [
   {
     id: 'cultural-type',
     category: 'cultural',
-    question: 'What cultural experiences interest you?',
-    type: 'multiple-choice',
-    options: ['Museums', 'Historical sites', 'Cultural festivals', 'Art exhibitions', 'Architecture tours', 'Local traditions', 'Language exchanges', 'Religious sites']
+    question: 'What cultural experiences interest you? (Select all that apply)',
+    type: 'multi-select',
+    options: ['Museums', 'Historical sites', 'Cultural festivals', 'Art exhibitions', 'Architecture tours', 'Local traditions', 'Language exchanges', 'Religious sites', 'Others']
   },
   {
     id: 'cultural-learning',
