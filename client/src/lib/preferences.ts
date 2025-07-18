@@ -71,9 +71,9 @@ export const preferenceQuestions: PreferenceQuestion[] = [
   {
     id: 'entertainment-crowd',
     category: 'entertainment',
-    question: 'Do you prefer intimate or lively entertainment venues?',
-    type: 'multiple-choice',
-    options: ['Intimate & quiet', 'Small groups', 'Moderate crowds', 'Large events', 'Doesn\'t matter']
+    question: 'Do you prefer intimate or lively entertainment venues? (Select all that apply)',
+    type: 'multi-select',
+    options: ['Intimate & quiet', 'Small groups', 'Moderate crowds', 'Large events', 'Doesn\'t matter', 'None of these', 'Others']
   },
 
   // Active Preferences

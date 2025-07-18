@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { preferenceQuestions, getScaleLabel, type PreferenceResponse } from "@/lib/preferences";
 import { getCurrentLocation } from "@/lib/geolocation";
@@ -21,6 +22,7 @@ export default function Preferences() {
   const [userLocation, setUserLocation] = useState<{latitude: number, longitude: number} | null>(null);
   const [locationError, setLocationError] = useState<string | null>(null);
   const [isGettingLocation, setIsGettingLocation] = useState(false);
+  const [customInputs, setCustomInputs] = useState<Record<string, string>>({});
 
   const currentQuestion = preferenceQuestions[currentQuestionIndex];
   const isLastQuestion = currentQuestionIndex === preferenceQuestions.length - 1;
@@ -182,28 +184,71 @@ export default function Preferences() {
         const selectedValues = (currentResponse?.value as string[]) || [];
         const handleMultiSelectChange = (option: string, checked: boolean) => {
           let newSelected = [...selectedValues];
-          if (checked) {
-            if (!newSelected.includes(option)) {
-              newSelected.push(option);
+          
+          // Handle "None of these" logic
+          if (option === "None of these") {
+            if (checked) {
+              // If "None of these" is selected, clear all other selections
+              newSelected = ["None of these"];
+            } else {
+              newSelected = [];
             }
           } else {
-            newSelected = newSelected.filter(item => item !== option);
+            // If any other option is selected, remove "None of these"
+            if (checked && newSelected.includes("None of these")) {
+              newSelected = newSelected.filter(item => item !== "None of these");
+            }
+            
+            if (checked) {
+              if (!newSelected.includes(option)) {
+                newSelected.push(option);
+              }
+            } else {
+              newSelected = newSelected.filter(item => item !== option);
+            }
           }
+          
           handleAnswer(newSelected);
+        };
+
+        const handleCustomInputChange = (value: string) => {
+          setCustomInputs(prev => ({
+            ...prev,
+            [currentQuestion.id]: value
+          }));
+          
+          // Update the selected values to include the custom input
+          if (value.trim() && selectedValues.includes("Others")) {
+            const updatedValues = selectedValues.filter(v => !v.startsWith("Others:"));
+            updatedValues.push(`Others: ${value.trim()}`);
+            handleAnswer(updatedValues);
+          }
         };
         
         return (
           <div className="space-y-3">
             {currentQuestion.options?.map((option) => (
-              <div key={option} className="flex items-center space-x-2">
-                <Checkbox
-                  id={option}
-                  checked={selectedValues.includes(option)}
-                  onCheckedChange={(checked) => handleMultiSelectChange(option, checked as boolean)}
-                />
-                <Label htmlFor={option} className="text-sm cursor-pointer">
-                  {option}
-                </Label>
+              <div key={option} className="space-y-2">
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id={option}
+                    checked={selectedValues.includes(option) || (option === "Others" && selectedValues.some(v => v.startsWith("Others:")))}
+                    onCheckedChange={(checked) => handleMultiSelectChange(option, checked as boolean)}
+                  />
+                  <Label htmlFor={option} className="text-sm cursor-pointer">
+                    {option}
+                  </Label>
+                </div>
+                {option === "Others" && (selectedValues.includes("Others") || selectedValues.some(v => v.startsWith("Others:"))) && (
+                  <div className="ml-6">
+                    <Input
+                      placeholder="Please specify..."
+                      value={customInputs[currentQuestion.id] || ''}
+                      onChange={(e) => handleCustomInputChange(e.target.value)}
+                      className="bg-white/10 border-white/20 text-white placeholder:text-gray-400"
+                    />
+                  </div>
+                )}
               </div>
             ))}
           </div>
