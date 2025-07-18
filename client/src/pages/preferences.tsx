@@ -27,9 +27,9 @@ export default function Preferences() {
   const hasAnswered = (() => {
     const response = responses[currentQuestion.id];
     if (!response) {
-      // For scale questions, check if we have a default value
-      if (currentQuestion.type === 'scale') {
-        return true; // Scale questions always have a default value
+      // For scale and boolean questions, they have default values
+      if (currentQuestion.type === 'scale' || currentQuestion.type === 'boolean') {
+        return true;
       }
       return false;
     }
@@ -234,14 +234,19 @@ export default function Preferences() {
         );
       
       case 'boolean':
+        const booleanValue = (currentResponse?.value as boolean) ?? false;
+        // Set default value if not already set
+        if (!currentResponse) {
+          handleAnswer(false);
+        }
         return (
           <div className="flex items-center space-x-3">
             <Switch
-              checked={currentResponse?.value as boolean || false}
+              checked={booleanValue}
               onCheckedChange={(checked) => handleAnswer(checked)}
             />
             <Label className="text-sm">
-              {currentResponse?.value ? 'Yes' : 'No'}
+              {booleanValue ? 'Yes' : 'No'}
             </Label>
           </div>
         );

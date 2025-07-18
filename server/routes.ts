@@ -165,7 +165,7 @@ export async function registerRoutes(app: Express) {
       const assessmentData = {
         userId: parseInt(userId),
         responses,
-        personalityType,
+        personalityType: personalityType || "Unknown", // Provide fallback
         completedAt: new Date()
       };
 
@@ -173,7 +173,7 @@ export async function registerRoutes(app: Express) {
       
       // Update user's personality type
       await storage.updateUser(parseInt(userId), { 
-        personalityType
+        personalityType: personalityType || "Unknown"
       });
 
       res.json({
