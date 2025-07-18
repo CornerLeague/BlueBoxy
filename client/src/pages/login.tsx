@@ -61,8 +61,9 @@ export default function Login() {
         
         // Save guest assessment results to the user's account
         apiRequest("POST", "/api/assessment/responses", {
+          userId: data.user.id,
           responses: results.responses,
-          assessmentType: "user"
+          personalityType: results.personalityType
         }).then(() => {
           localStorage.removeItem("guestAssessmentResults");
           localStorage.removeItem("onboardingData");

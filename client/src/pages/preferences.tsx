@@ -26,7 +26,13 @@ export default function Preferences() {
   const isLastQuestion = currentQuestionIndex === preferenceQuestions.length - 1;
   const hasAnswered = (() => {
     const response = responses[currentQuestion.id];
-    if (!response) return false;
+    if (!response) {
+      // For scale questions, check if we have a default value
+      if (currentQuestion.type === 'scale') {
+        return true; // Scale questions always have a default value
+      }
+      return false;
+    }
     
     if (currentQuestion.type === 'multi-select') {
       return Array.isArray(response.value) && response.value.length > 0;
@@ -205,6 +211,10 @@ export default function Preferences() {
       
       case 'scale':
         const scaleValue = (currentResponse?.value as number) || 3;
+        // Set default value if not already set
+        if (!currentResponse) {
+          handleAnswer(3);
+        }
         return (
           <div className="space-y-4">
             <div className="px-3">
