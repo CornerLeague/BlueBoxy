@@ -118,6 +118,15 @@ export const activities = pgTable("activities", {
   imageUrl: text("image_url"),
 });
 
+export const userStats = pgTable("user_stats", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  messagesCopied: integer("messages_copied").default(0),
+  eventsCreated: integer("events_created").default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
   createdAt: true,
@@ -158,6 +167,12 @@ export const insertActivitySchema = createInsertSchema(activities).omit({
   id: true,
 });
 
+export const insertUserStatsSchema = createInsertSchema(userStats).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
 export type Partner = typeof partners.$inferSelect;
@@ -172,14 +187,24 @@ export type CalendarEvent = typeof calendarEvents.$inferSelect;
 export type InsertCalendarEvent = typeof calendarEvents.$inferInsert;
 export type Activity = typeof activities.$inferSelect;
 export type InsertActivity = typeof activities.$inferInsert;
+export type UserStats = typeof userStats.$inferSelect;
+export type InsertUserStats = typeof userStats.$inferInsert;
 
 // Relations
-export const usersRelations = relations(users, ({ many }) => ({
+export const usersRelations = relations(users, ({ one, many }) => ({
   partners: many(partners),
   assessmentResponses: many(assessmentResponses),
   recommendations: many(recommendations),
   notifications: many(notifications),
   calendarEvents: many(calendarEvents),
+  stats: one(userStats),
+}));
+
+export const userStatsRelations = relations(userStats, ({ one }) => ({
+  user: one(users, {
+    fields: [userStats.userId],
+    references: [users.id],
+  }),
 }));
 
 export const partnersRelations = relations(partners, ({ one, many }) => ({

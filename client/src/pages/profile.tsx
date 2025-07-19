@@ -21,6 +21,12 @@ export default function Profile() {
     enabled: !!userId,
   });
 
+  const { data: userStats } = useQuery({
+    queryKey: [`/api/user/stats`, userId],
+    queryFn: () => fetch(`/api/user/stats/${userId}`).then(res => res.json()),
+    enabled: !!userId,
+  });
+
   if (!userId) {
     return (
       <div className="p-6 min-h-screen flex items-center justify-center">
@@ -73,11 +79,11 @@ export default function Profile() {
         
         <div className="grid grid-cols-2 gap-4">
           <div className="text-center">
-            <div className="text-2xl font-bold text-primary">156</div>
+            <div className="text-2xl font-bold text-primary">{userStats?.messagesCopied || 0}</div>
             <div className="text-muted-foreground text-sm">Messages Sent</div>
           </div>
           <div className="text-center">
-            <div className="text-2xl font-bold text-success">24</div>
+            <div className="text-2xl font-bold text-success">{userStats?.eventsCreated || 0}</div>
             <div className="text-muted-foreground text-sm">Dates Planned</div>
           </div>
         </div>

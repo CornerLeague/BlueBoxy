@@ -6,6 +6,7 @@ import {
   activities, 
   notifications,
   calendarEvents,
+  userStats,
   type User, 
   type InsertUser,
   type Partner,
@@ -19,7 +20,9 @@ import {
   type Notification,
   type InsertNotification,
   type CalendarEvent,
-  type InsertCalendarEvent
+  type InsertCalendarEvent,
+  type UserStats,
+  type InsertUserStats
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, asc } from "drizzle-orm";
@@ -44,6 +47,11 @@ export interface IStorage {
   // Calendar Events
   getUserEvents(userId: number): Promise<CalendarEvent[]>;
   createEvent(event: InsertCalendarEvent): Promise<CalendarEvent>;
+  
+  // User Statistics
+  getUserStats(userId: number): Promise<UserStats | undefined>;
+  incrementMessagesCopied(userId: number): Promise<UserStats>;
+  incrementEventsCreated(userId: number): Promise<UserStats>;
 }
 
 export class MemStorage implements IStorage {
@@ -433,6 +441,77 @@ export class DatabaseStorage implements IStorage {
       .returning();
     return newEvent;
   }
+
+  async getUserStats(userId: number): Promise<UserStats | undefined> {
+    try {
+      const [stats] = await db
+        .select()
+        .from(userStats)
+        .where(eq(userStats.userId, userId));
+      return stats || undefined;
+    } catch (error) {
+      console.error("Error getting user stats:", error);
+      return undefined;
+    }
+  }
+
+  async incrementMessagesCopied(userId: number): Promise<UserStats> {
+    // First check if stats record exists
+    let stats = await this.getUserStats(userId);
+    
+    if (!stats) {
+      // Create new stats record
+      const [newStats] = await db
+        .insert(userStats)
+        .values({ 
+          userId, 
+          messagesCopied: 1, 
+          eventsCreated: 0 
+        })
+        .returning();
+      return newStats;
+    } else {
+      // Update existing record
+      const [updatedStats] = await db
+        .update(userStats)
+        .set({ 
+          messagesCopied: stats.messagesCopied + 1,
+          updatedAt: new Date()
+        })
+        .where(eq(userStats.userId, userId))
+        .returning();
+      return updatedStats;
+    }
+  }
+
+  async incrementEventsCreated(userId: number): Promise<UserStats> {
+    // First check if stats record exists
+    let stats = await this.getUserStats(userId);
+    
+    if (!stats) {
+      // Create new stats record
+      const [newStats] = await db
+        .insert(userStats)
+        .values({ 
+          userId, 
+          messagesCopied: 0, 
+          eventsCreated: 1 
+        })
+        .returning();
+      return newStats;
+    } else {
+      // Update existing record
+      const [updatedStats] = await db
+        .update(userStats)
+        .set({ 
+          eventsCreated: stats.eventsCreated + 1,
+          updatedAt: new Date()
+        })
+        .where(eq(userStats.userId, userId))
+        .returning();
+      return updatedStats;
+    }
+  }
 }
 
 // Simple localStorage wrapper for server-side compatibility
@@ -447,11 +526,13 @@ class LocalStorageStorage implements IStorage {
       recommendations: new Map(),
       activities: new Map(),
       events: new Map(),
+      userStats: new Map(),
       currentUserId: 1,
       currentAssessmentId: 1,
       currentRecommendationId: 1,
       currentActivityId: 1,
-      currentEventId: 1
+      currentEventId: 1,
+      currentStatsId: 1
     };
     
     // Seed some basic activity data
@@ -708,6 +789,66 @@ class LocalStorageStorage implements IStorage {
     
     this.storage.events.set(newEvent.id, newEvent);
     return newEvent;
+  }
+
+  async getUserStats(userId: number): Promise<UserStats | undefined> {
+    return this.storage.userStats?.get(userId);
+  }
+
+  async incrementMessagesCopied(userId: number): Promise<UserStats> {
+    if (!this.storage.userStats) {
+      this.storage.userStats = new Map();
+    }
+
+    let stats = this.storage.userStats.get(userId);
+    
+    if (!stats) {
+      stats = {
+        id: this.storage.currentStatsId++,
+        userId,
+        messagesCopied: 1,
+        eventsCreated: 0,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      };
+    } else {
+      stats = {
+        ...stats,
+        messagesCopied: stats.messagesCopied + 1,
+        updatedAt: new Date()
+      };
+    }
+    
+    this.storage.userStats.set(userId, stats);
+    return stats;
+  }
+
+  async incrementEventsCreated(userId: number): Promise<UserStats> {
+    if (!this.storage.userStats) {
+      this.storage.userStats = new Map();
+    }
+
+    let stats = this.storage.userStats.get(userId);
+    
+    if (!stats) {
+      stats = {
+        id: this.storage.currentStatsId++,
+        userId,
+        messagesCopied: 0,
+        eventsCreated: 1,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      };
+    } else {
+      stats = {
+        ...stats,
+        eventsCreated: stats.eventsCreated + 1,
+        updatedAt: new Date()
+      };
+    }
+    
+    this.storage.userStats.set(userId, stats);
+    return stats;
   }
 }
 

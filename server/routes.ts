@@ -498,10 +498,50 @@ export async function registerRoutes(app: Express) {
     try {
       const eventData = insertCalendarEventSchema.parse(req.body);
       const event = await storage.createEvent(eventData);
+      
+      // Increment events created counter
+      if (eventData.userId) {
+        await storage.incrementEventsCreated(parseInt(eventData.userId));
+      }
+      
       res.json(event);
     } catch (error) {
       console.error("Error creating event:", error);
       res.status(400).json({ error: error.message });
+    }
+  });
+
+  // User statistics routes
+  app.get("/api/user/stats/:userId", async (req, res) => {
+    try {
+      const { userId } = req.params;
+      const stats = await storage.getUserStats(parseInt(userId));
+      
+      if (!stats) {
+        // Return default stats if none exist
+        return res.json({ messagesCopied: 0, eventsCreated: 0 });
+      }
+      
+      res.json(stats);
+    } catch (error) {
+      console.error("Error fetching user stats:", error);
+      res.status(500).json({ error: "Failed to fetch user statistics" });
+    }
+  });
+
+  app.post("/api/user/stats/message-copied", async (req, res) => {
+    try {
+      const { userId } = req.body;
+      
+      if (!userId) {
+        return res.status(400).json({ error: "User ID is required" });
+      }
+      
+      const stats = await storage.incrementMessagesCopied(parseInt(userId));
+      res.json(stats);
+    } catch (error) {
+      console.error("Error updating message stats:", error);
+      res.status(500).json({ error: "Failed to update statistics" });
     }
   });
 

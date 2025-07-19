@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ArrowLeft, Copy, Heart, Sun, Zap, Clock, MessageSquare } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
 
 const messageCategories = [
   { id: "daily", label: "Daily Check-ins", active: true },
@@ -47,6 +49,19 @@ export default function Messages() {
   const [, setLocation] = useLocation();
   const [activeCategory, setActiveCategory] = useState("daily");
   const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const userId = localStorage.getItem("userId");
+
+  const incrementMessageMutation = useMutation({
+    mutationFn: async () => {
+      if (!userId) return;
+      await apiRequest("POST", "/api/user/stats/message-copied", { userId: parseInt(userId) });
+    },
+    onSuccess: () => {
+      // Invalidate user stats to refresh the profile page
+      queryClient.invalidateQueries({ queryKey: [`/api/user/stats`, userId] });
+    },
+  });
 
   const handleCopyMessage = (message: string) => {
     navigator.clipboard.writeText(message);
@@ -54,6 +69,9 @@ export default function Messages() {
       title: "Message copied!",
       description: "The message has been copied to your clipboard.",
     });
+    
+    // Track the copy action
+    incrementMessageMutation.mutate();
   };
 
   const filteredMessages = sampleMessages.filter(msg => msg.category === activeCategory);
