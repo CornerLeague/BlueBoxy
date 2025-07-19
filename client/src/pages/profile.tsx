@@ -93,10 +93,6 @@ export default function Profile() {
       <div className="glass-card rounded-2xl p-6 mb-6">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-semibold">{user.partnerName}'s Profile</h3>
-          <button className="control-btn px-3 py-1 rounded-lg text-primary text-sm font-medium flex items-center hover:bg-[var(--hover-subtle)] hover:text-[var(--hover-text)] transition-colors">
-            <Edit className="w-4 h-4 mr-1" />
-            Edit
-          </button>
         </div>
           
           <div className="space-y-4">
