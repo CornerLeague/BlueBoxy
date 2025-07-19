@@ -217,9 +217,6 @@ export default function Dashboard() {
       <div className="px-6 mb-6">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold">Today's Recommendations</h2>
-          <Button variant="ghost" size="sm" className="text-primary">
-            See All
-          </Button>
         </div>
         
         <div className="space-y-4">
