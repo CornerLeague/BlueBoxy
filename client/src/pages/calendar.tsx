@@ -6,32 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { ArrowLeft, Plus, Clock, ChevronLeft, ChevronRight, Calendar as CalendarIcon } from "lucide-react";
 import { CalendarProviders } from "@/components/calendar-providers";
 
-const mockEvents = [
-  {
-    id: 1,
-    title: "Coffee Date at Garden Café",
-    description: "Reminder: Ask about her presentation",
-    date: "2024-12-14T14:00:00",
-    type: "date",
-    color: "bg-primary",
-  },
-  {
-    id: 2,
-    title: "Golden Gate Park Walk",
-    description: "Weather looks perfect for outdoor activities",
-    date: "2024-12-20T10:00:00",
-    type: "activity",
-    color: "bg-success",
-  },
-  {
-    id: 3,
-    title: "Christmas Eve Dinner",
-    description: "Special romantic dinner planned",
-    date: "2024-12-24T19:00:00",
-    type: "special",
-    color: "bg-warning",
-  },
-];
+
 
 export default function Calendar() {
   const [, setLocation] = useLocation();
@@ -39,7 +14,7 @@ export default function Calendar() {
   const [showProviders, setShowProviders] = useState(false);
   const userId = localStorage.getItem("userId");
 
-  const { data: events = mockEvents } = useQuery({
+  const { data: events = [], isLoading } = useQuery({
     queryKey: [`/api/events/user/${userId}`],
     enabled: !!userId,
   });
@@ -72,6 +47,16 @@ export default function Calendar() {
     if (diffDays === 0) return "Today";
     if (diffDays > 1 && diffDays < 7) return `In ${diffDays} days`;
     return formatDate(dateString);
+  };
+
+  const getEventTypeColor = (eventType: string) => {
+    switch (eventType) {
+      case 'date': return 'bg-pink-500';
+      case 'activity': return 'bg-green-500';
+      case 'special': return 'bg-purple-500';
+      case 'reminder': return 'bg-blue-500';
+      default: return 'bg-gray-500';
+    }
   };
 
   // Simple calendar grid generation
@@ -185,21 +170,42 @@ export default function Calendar() {
       <div className="mb-6">
         <h3 className="text-lg font-semibold mb-4">Upcoming Events</h3>
         <div className="space-y-3">
-          {events.map((event: any) => (
-            <div key={event.id} className="glass-card rounded-2xl p-4">
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center">
-                  <div className={`w-3 h-3 ${event.color} rounded-full mr-3 shadow-lg`}></div>
-                  <span className="font-semibold">{event.title}</span>
-                </div>
-                <span className="text-muted-foreground text-sm font-medium">{getRelativeDate(event.date)}</span>
+          {isLoading ? (
+            <div className="glass-card rounded-2xl p-4">
+              <div className="animate-pulse">
+                <div className="h-4 bg-white/20 rounded mb-2"></div>
+                <div className="h-3 bg-white/10 rounded mb-1"></div>
+                <div className="h-3 bg-white/10 rounded w-3/4"></div>
               </div>
-              <p className="text-muted-foreground text-sm mb-2">
-                {formatDate(event.date)} at {formatTime(event.date)}
-              </p>
-              <p className="text-muted-foreground text-sm leading-relaxed">{event.description}</p>
             </div>
-          ))}
+          ) : events.length === 0 ? (
+            <div className="glass-card rounded-2xl p-6 text-center">
+              <CalendarIcon className="w-12 h-12 mx-auto mb-3 text-muted-foreground opacity-60" />
+              <p className="text-muted-foreground text-lg font-medium mb-2">No Upcoming Events</p>
+              <p className="text-muted-foreground text-sm">Start planning your next date by adding an event below</p>
+            </div>
+          ) : (
+            events.map((event: any) => (
+              <div key={event.id} className="glass-card rounded-2xl p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center">
+                    <div className={`w-3 h-3 ${getEventTypeColor(event.eventType)} rounded-full mr-3 shadow-lg`}></div>
+                    <span className="font-semibold">{event.title}</span>
+                  </div>
+                  <span className="text-muted-foreground text-sm font-medium">{getRelativeDate(event.startTime)}</span>
+                </div>
+                <p className="text-muted-foreground text-sm mb-2">
+                  {formatDate(event.startTime)} at {formatTime(event.startTime)}
+                </p>
+                {event.location && (
+                  <p className="text-muted-foreground text-sm mb-2">📍 {event.location}</p>
+                )}
+                {event.description && (
+                  <p className="text-muted-foreground text-sm leading-relaxed">{event.description}</p>
+                )}
+              </div>
+            ))
+          )}
         </div>
       </div>
       

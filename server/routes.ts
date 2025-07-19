@@ -476,6 +476,35 @@ export async function registerRoutes(app: Express) {
     }
   });
 
+  // User events route - return user's calendar events from database
+  app.get("/api/events/user/:userId", async (req, res) => {
+    try {
+      const { userId } = req.params;
+      
+      if (!userId) {
+        return res.status(400).json({ error: "User ID is required" });
+      }
+      
+      const events = await storage.getUserEvents(parseInt(userId));
+      res.json(events);
+    } catch (error) {
+      console.error("Error fetching user events:", error);
+      res.status(500).json({ error: "Failed to fetch user events" });
+    }
+  });
+
+  // Create new event route
+  app.post("/api/events", async (req, res) => {
+    try {
+      const eventData = insertCalendarEventSchema.parse(req.body);
+      const event = await storage.createEvent(eventData);
+      res.json(event);
+    } catch (error) {
+      console.error("Error creating event:", error);
+      res.status(400).json({ error: error.message });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

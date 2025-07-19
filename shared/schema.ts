@@ -156,9 +156,22 @@ export const insertCalendarEventSchema = createInsertSchema(calendarEvents).omit
 
 export const insertActivitySchema = createInsertSchema(activities).omit({
   id: true,
-  createdAt: true,
-  updatedAt: true,
 });
+
+export type User = typeof users.$inferSelect;
+export type InsertUser = typeof users.$inferInsert;
+export type Partner = typeof partners.$inferSelect;
+export type InsertPartner = typeof partners.$inferInsert;
+export type AssessmentResponse = typeof assessmentResponses.$inferSelect;
+export type InsertAssessmentResponse = typeof assessmentResponses.$inferInsert;
+export type Recommendation = typeof recommendations.$inferSelect;
+export type InsertRecommendation = typeof recommendations.$inferInsert;
+export type Notification = typeof notifications.$inferSelect;
+export type InsertNotification = typeof notifications.$inferInsert;
+export type CalendarEvent = typeof calendarEvents.$inferSelect;
+export type InsertCalendarEvent = typeof calendarEvents.$inferInsert;
+export type Activity = typeof activities.$inferSelect;
+export type InsertActivity = typeof activities.$inferInsert;
 
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({

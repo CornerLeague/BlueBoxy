@@ -40,6 +40,10 @@ export interface IStorage {
   getActivities(): Promise<Activity[]>;
   getActivitiesByPersonality(personalityType: string): Promise<Activity[]>;
   createActivity(activity: InsertActivity): Promise<Activity>;
+  
+  // Calendar Events
+  getUserEvents(userId: number): Promise<CalendarEvent[]>;
+  createEvent(event: InsertCalendarEvent): Promise<CalendarEvent>;
 }
 
 export class MemStorage implements IStorage {
@@ -407,6 +411,28 @@ export class DatabaseStorage implements IStorage {
       .where(eq(assessmentResponses.userId, userId));
     return assessment || undefined;
   }
+
+  async getUserEvents(userId: number): Promise<CalendarEvent[]> {
+    try {
+      const userEvents = await db
+        .select()
+        .from(calendarEvents)
+        .where(eq(calendarEvents.userId, userId.toString()))
+        .orderBy(asc(calendarEvents.startTime));
+      return userEvents;
+    } catch (error) {
+      console.error("Error getting user events:", error);
+      return [];
+    }
+  }
+
+  async createEvent(event: InsertCalendarEvent): Promise<CalendarEvent> {
+    const [newEvent] = await db
+      .insert(calendarEvents)
+      .values(event)
+      .returning();
+    return newEvent;
+  }
 }
 
 // Simple localStorage wrapper for server-side compatibility
@@ -649,6 +675,39 @@ class LocalStorageStorage implements IStorage {
   
   async generateSampleRecommendations(userId: number, personalityType: string): Promise<void> {
     // This will be handled by OpenAI integration
+  }
+
+  async getUserEvents(userId: number): Promise<CalendarEvent[]> {
+    const events: CalendarEvent[] = [];
+    for (const event of this.storage.events.values()) {
+      if (event.userId === userId) events.push(event);
+    }
+    return events;
+  }
+
+  async createEvent(event: InsertCalendarEvent): Promise<CalendarEvent> {
+    const newEvent: CalendarEvent = {
+      id: this.storage.currentEventId++,
+      userId: event.userId,
+      partnerId: event.partnerId,
+      title: event.title,
+      description: event.description,
+      location: event.location,
+      startTime: event.startTime,
+      endTime: event.endTime,
+      allDay: event.allDay || false,
+      eventType: event.eventType,
+      status: event.status || 'scheduled',
+      externalEventId: event.externalEventId,
+      calendarProvider: event.calendarProvider,
+      reminders: event.reminders || [],
+      metadata: event.metadata || {},
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+    
+    this.storage.events.set(newEvent.id, newEvent);
+    return newEvent;
   }
 }
 
