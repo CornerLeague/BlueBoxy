@@ -6,6 +6,7 @@ import { ArrowLeft, Copy, Heart, Sun, Zap, Clock, MessageSquare } from "lucide-r
 import { useToast } from "@/hooks/use-toast";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
+import { useNavigationHistory } from "@/hooks/useNavigationHistory";
 
 const messageCategories = [
   { id: "daily", label: "Daily Check-ins", active: true },
@@ -47,6 +48,7 @@ const sampleMessages = [
 
 export default function Messages() {
   const [, setLocation] = useLocation();
+  const { goBack } = useNavigationHistory();
   const [activeCategory, setActiveCategory] = useState("daily");
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -82,7 +84,7 @@ export default function Messages() {
         <Button
           variant="ghost"
           size="sm"
-          onClick={() => setLocation("/dashboard")}
+          onClick={goBack}
           className="mr-4 p-2 rounded-full bg-secondary"
         >
           <ArrowLeft className="w-5 h-5" />

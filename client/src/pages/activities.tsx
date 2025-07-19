@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ArrowLeft, MapPin, Star, Heart, ExternalLink, Settings, Navigation } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useNavigationHistory } from "@/hooks/useNavigationHistory";
 
 const activityCategories = [
   { id: "recommended", label: "Recommended", active: true },
@@ -17,6 +18,7 @@ const activityCategories = [
 
 export default function Activities() {
   const [, setLocation] = useLocation();
+  const { goBack } = useNavigationHistory();
   const [activeCategory, setActiveCategory] = useState("recommended");
   const { toast } = useToast();
 
@@ -60,7 +62,7 @@ export default function Activities() {
         <Button
           variant="ghost"
           size="sm"
-          onClick={() => setLocation("/dashboard")}
+          onClick={goBack}
           className="mr-4 p-2 rounded-full bg-secondary"
         >
           <ArrowLeft className="w-5 h-5" />

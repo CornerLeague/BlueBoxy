@@ -5,11 +5,13 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ArrowLeft, Plus, Clock, ChevronLeft, ChevronRight, Calendar as CalendarIcon } from "lucide-react";
 import { CalendarProviders } from "@/components/calendar-providers";
+import { useNavigationHistory } from "@/hooks/useNavigationHistory";
 
 
 
 export default function Calendar() {
   const [, setLocation] = useLocation();
+  const { goBack } = useNavigationHistory();
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [showProviders, setShowProviders] = useState(false);
   const userId = localStorage.getItem("userId");
@@ -88,7 +90,7 @@ export default function Calendar() {
         <Button
           variant="ghost"
           size="sm"
-          onClick={() => setLocation("/dashboard")}
+          onClick={goBack}
           className="mr-4 p-2 rounded-full bg-secondary"
         >
           <ArrowLeft className="w-5 h-5" />

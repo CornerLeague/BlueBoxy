@@ -4,9 +4,11 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { ArrowLeft, User, Edit, RefreshCw, Bell, Lock, ChevronRight } from "lucide-react";
+import { useNavigationHistory } from "@/hooks/useNavigationHistory";
 
 export default function Profile() {
   const [, setLocation] = useLocation();
+  const { goBack } = useNavigationHistory();
   const userId = localStorage.getItem("userId");
   const token = localStorage.getItem("authToken");
 
@@ -57,7 +59,7 @@ export default function Profile() {
         <Button
           variant="ghost"
           size="sm"
-          onClick={() => setLocation("/dashboard")}
+          onClick={goBack}
           className="mr-4 p-2 rounded-full bg-secondary"
         >
           <ArrowLeft className="w-5 h-5" />
