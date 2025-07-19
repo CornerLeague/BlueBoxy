@@ -85,8 +85,8 @@ export default function Login() {
           description: "Successfully logged into your account.",
         });
         
-        // Navigate based on assessment completion
-        if (data.user.assessmentCompleted) {
+        // Navigate based on assessment completion - check if user has personalityType
+        if (data.user.personalityType) {
           setLocation("/dashboard");
         } else {
           setLocation("/assessment");

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -73,8 +73,13 @@ export default function Assessment() {
   const userId = localStorage.getItem("userId");
   const userData = JSON.parse(localStorage.getItem("userData") || "null");
   
-  // Debug logging
-  console.log("Assessment page - userId:", userId, "userData:", userData);
+  // Redirect to dashboard if user already has completed assessment
+  const isAuthenticated = localStorage.getItem("isAuthenticated") === "true";
+  useEffect(() => {
+    if (isAuthenticated && userData && userData.personalityType) {
+      setLocation("/dashboard");
+    }
+  }, [isAuthenticated, userData, setLocation]);
 
   const saveAssessmentMutation = useMutation({
     mutationFn: async (assessmentData: any) => {
