@@ -266,3 +266,82 @@ Respond with JSON format:
     ];
   }
 }
+
+export async function generateAIPoweredRecommendations({
+  user,
+  assessment,
+  category,
+  location,
+  preferences,
+  radius
+}: {
+  user: any;
+  assessment: any;
+  category: string;
+  location: any;
+  preferences: any;
+  radius: number;
+}) {
+  const prompt = `Create personalized date recommendations for ${user.name} and ${user.partnerName}.
+
+User Context:
+- Personality Type: ${user.personalityType || "Thoughtful Harmonizer"}
+- Relationship Duration: ${user.relationshipDuration}
+- Location: ${location ? `${location.latitude}, ${location.longitude}` : "Location not provided"}
+- Preferred Category: ${category}
+- Search Radius: ${radius} miles
+
+User Preferences:
+${preferences ? JSON.stringify(preferences, null, 2) : "No specific preferences provided"}
+
+Assessment Responses:
+${assessment?.responses ? JSON.stringify(assessment.responses, null, 2) : "No assessment data"}
+
+Please provide 4-6 specific, actionable date recommendations that are:
+1. Within ${radius} miles of their location (if provided)
+2. Tailored to their personality type and preferences
+3. Focused on the "${category}" category
+4. Include real places and activities when possible
+5. Consider their relationship duration and stage
+
+Respond with JSON in this exact format:
+{
+  "activities": [
+    {
+      "id": 1,
+      "name": "Activity Name",
+      "description": "Detailed description of the activity and why it's perfect for them",
+      "category": "${category}",
+      "rating": 4.5,
+      "personalityMatch": "Why this matches their personality",
+      "distance": "2.3 miles away",
+      "imageUrl": "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=400",
+      "location": "Specific address or area"
+    }
+  ]
+}`;
+
+  try {
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
+      messages: [
+        {
+          role: "system",
+          content: "You are an expert relationship coach and local activity curator. Generate specific, personalized date recommendations based on user data, location, and preferences. Always respond with valid JSON."
+        },
+        {
+          role: "user",
+          content: prompt
+        }
+      ],
+      response_format: { type: "json_object" },
+      max_tokens: 2000
+    });
+
+    const result = JSON.parse(response.choices[0].message.content || "{}");
+    return result;
+  } catch (error) {
+    console.error("Error generating AI-powered recommendations:", error);
+    throw error;
+  }
+}

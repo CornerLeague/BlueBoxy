@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
@@ -6,6 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { ArrowLeft, MapPin, Star, Heart, ExternalLink, Settings, Navigation } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigationHistory } from "@/hooks/useNavigationHistory";
+import { apiRequest } from "@/lib/queryClient";
 
 const activityCategories = [
   { id: "recommended", label: "Recommended", active: true },
@@ -20,7 +21,10 @@ export default function Activities() {
   const [, setLocation] = useLocation();
   const { goBack } = useNavigationHistory();
   const [activeCategory, setActiveCategory] = useState("recommended");
+  const [isGeneratingAI, setIsGeneratingAI] = useState(false);
+  const [aiRecommendations, setAIRecommendations] = useState<any[]>([]);
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   const { data: activities = [], isLoading } = useQuery({
     queryKey: ["/api/activities"],
@@ -47,8 +51,47 @@ export default function Activities() {
     });
   };
 
+  const generateAIRecommendations = async () => {
+    if (!userId || !user) return;
+    
+    setIsGeneratingAI(true);
+    try {
+      const response = await apiRequest("POST", "/api/recommendations/ai-powered", {
+        userId: parseInt(userId),
+        category: activeCategory,
+        location: user.location,
+        preferences: user.preferences
+      });
+      
+      // Update activities with AI recommendations
+      if (response.recommendations?.activities) {
+        // Set the AI recommendations as the new filtered activities
+        setAIRecommendations(response.recommendations.activities);
+        
+        // Also invalidate queries to refresh other data
+        queryClient.invalidateQueries({ queryKey: ["/api/activities"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/recommendations/location-based", userId] });
+      }
+      
+      toast({
+        title: "Recommendations Generated!",
+        description: "Fresh AI-powered date ideas are now available.",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to generate recommendations. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsGeneratingAI(false);
+    }
+  };
+
   const filteredActivities = activeCategory === "location-based" 
     ? locationActivities?.activities || [] 
+    : aiRecommendations.length > 0 && activeCategory === "recommended"
+    ? aiRecommendations
     : activities.filter((activity: any) => {
         if (activeCategory === "recommended") return true;
         return activity.category === activeCategory;
@@ -153,6 +196,30 @@ export default function Activities() {
           <div className="text-center py-12">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
             <p className="text-muted-foreground mt-2">Loading activities...</p>
+          </div>
+        ) : filteredActivities.length === 0 ? (
+          <div className="text-center py-12">
+            <div className="w-16 h-16 bg-gradient-to-br from-primary to-blue-500 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
+              <MapPin className="w-8 h-8 text-white" />
+            </div>
+            <h3 className="text-lg font-semibold mb-2">No Recommendations</h3>
+            <p className="text-muted-foreground mb-4 max-w-sm mx-auto">
+              Get personalized AI-powered date recommendations based on your location, preferences, and personality.
+            </p>
+            <Button 
+              onClick={() => generateAIRecommendations()}
+              disabled={isGeneratingAI}
+              className="bg-gradient-to-r from-primary to-blue-500 hover:from-primary/90 hover:to-blue-500/90"
+            >
+              {isGeneratingAI ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  Generating...
+                </>
+              ) : (
+                "Get Recommendations"
+              )}
+            </Button>
           </div>
         ) : (
           filteredActivities.map((activity: any) => (

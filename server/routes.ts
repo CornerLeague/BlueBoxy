@@ -14,6 +14,7 @@ import {
   generatePersonalizedMessages, 
   generateActivityRecommendations,
   generateLocationBasedRecommendations,
+  generateAIPoweredRecommendations,
   type RecommendationContext 
 } from "./openai";
 import { calendarProviderManager } from "./calendar-providers";
@@ -542,6 +543,46 @@ export async function registerRoutes(app: Express) {
     } catch (error) {
       console.error("Error updating message stats:", error);
       res.status(500).json({ error: "Failed to update statistics" });
+    }
+  });
+
+  // AI-powered recommendations endpoint
+  app.post("/api/recommendations/ai-powered", async (req: any, res) => {
+    try {
+      const { userId, category, location, preferences } = req.body;
+      
+      if (!userId) {
+        return res.status(400).json({ error: "User ID is required" });
+      }
+
+      const user = await storage.getUser(parseInt(userId));
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      // Get user's assessment for personality context
+      const assessment = await storage.getAssessmentByUserId(parseInt(userId));
+      
+      // Generate AI-powered recommendations
+      const recommendations = await generateAIPoweredRecommendations({
+        user,
+        assessment,
+        category,
+        location: location || user.location,
+        preferences: preferences || user.preferences,
+        radius: 25
+      });
+
+      // Store or update activities in the database
+      // For now, we'll return them directly to the frontend
+      return res.json({ 
+        success: true, 
+        recommendations,
+        message: "AI recommendations generated successfully" 
+      });
+    } catch (error) {
+      console.error("Error generating AI-powered recommendations:", error);
+      res.status(500).json({ error: "Failed to generate AI recommendations" });
     }
   });
 
