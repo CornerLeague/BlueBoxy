@@ -154,7 +154,7 @@ export default function Dashboard() {
       <div className="p-6 pb-4">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-2xl font-bold">Good morning, {user.name?.split(' ')[0]}</h1>
+            <h1 className="text-2xl font-bold">Hello, {user.name?.split(' ')[0]}</h1>
             <p className="text-muted-foreground">Here's how to make {user.partnerName?.split(' ')[0]} smile today</p>
           </div>
           <div className="w-12 h-12 bg-gradient-to-br from-primary to-blue-400 rounded-full flex items-center justify-center">
