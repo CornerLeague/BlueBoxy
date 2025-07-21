@@ -4,7 +4,6 @@ import { Card, CardContent } from "@/components/ui/card";
 import { useLocation, Link } from "wouter";
 import { MessageSquare, MapPin, Calendar, User, Copy, Share2, Settings } from "lucide-react";
 import { PersonalityCircle } from "@/components/personality-circle";
-import { RecommendationCard } from "@/components/recommendation-card";
 import { useToast } from "@/hooks/use-toast";
 
 export default function Dashboard() {
@@ -113,24 +112,12 @@ export default function Dashboard() {
             </Button>
           </div>
 
-          {/* Sample Recommendations */}
+          {/* Activity Recommendations Note */}
           <div className="space-y-4">
-            <h3 className="font-semibold text-lg">Sample Recommendations</h3>
+            <h3 className="font-semibold text-lg">Activity Recommendations</h3>
             <p className="text-sm text-muted-foreground mb-4">
-              Create an account to unlock personalized recommendations based on your assessment
+              Create an account to unlock personalized activity recommendations based on your assessment and location
             </p>
-            
-            <RecommendationCard
-              recommendation={{
-                id: 1,
-                type: "message",
-                category: "appreciation",
-                content: "Hey beautiful, I was just thinking about how lucky I am to have someone as amazing as you in my life. Your smile brightens my entire day! 💕",
-                priority: "high",
-                personalityMatch: guestData.personalityType
-              }}
-              onCopyMessage={handleCopyMessage}
-            />
           </div>
         </div>
       </div>
@@ -190,22 +177,7 @@ export default function Dashboard() {
         </div>
       </div>
       
-      {/* Today's Recommendations */}
-      <div className="px-6 mb-6">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold">Today's Recommendations</h2>
-        </div>
-        
-        <div className="space-y-4">
-          {recommendations.map((rec) => (
-            <RecommendationCard
-              key={rec.id}
-              recommendation={rec}
-              onCopyMessage={handleCopyMessage}
-            />
-          ))}
-        </div>
-      </div>
+
       
       {/* Quick Actions */}
       <div className="px-6 mb-6">
