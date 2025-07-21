@@ -3,15 +3,13 @@ import { useState } from "react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { ArrowLeft, Plus, Clock, ChevronLeft, ChevronRight, Calendar as CalendarIcon } from "lucide-react";
+import { Plus, Clock, ChevronLeft, ChevronRight, Calendar as CalendarIcon } from "lucide-react";
 import { CalendarProviders } from "@/components/calendar-providers";
-import { useNavigationHistory } from "@/hooks/useNavigationHistory";
 
 
 
 export default function Calendar() {
   const [, setLocation] = useLocation();
-  const { goBack } = useNavigationHistory();
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [showProviders, setShowProviders] = useState(false);
   const userId = localStorage.getItem("userId");
@@ -86,21 +84,12 @@ export default function Calendar() {
 
   return (
     <div className="p-6 min-h-screen pb-24">
-      <div className="flex items-center mb-6">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={goBack}
-          className="mr-4 p-2 rounded-full bg-secondary"
-        >
-          <ArrowLeft className="w-5 h-5" />
-        </Button>
+      <div className="flex items-center justify-between mb-6">
         <h2 className="text-xl font-semibold">Relationship Calendar</h2>
         <Button
           variant="outline"
           size="sm"
           onClick={() => setShowProviders(!showProviders)}
-          className="ml-auto"
         >
           <CalendarIcon className="w-4 h-4 mr-2" />
           {showProviders ? 'Hide' : 'Connect'} Calendar
