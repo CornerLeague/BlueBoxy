@@ -3,11 +3,12 @@ import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { User, RefreshCw, Bell, Lock, ChevronRight } from "lucide-react";
-import { BackButton } from "@/components/ui/back-button";
+import { ArrowLeft, User, Edit, RefreshCw, Bell, Lock, ChevronRight } from "lucide-react";
+import { useNavigationHistory } from "@/hooks/useNavigationHistory";
 
 export default function Profile() {
   const [, setLocation] = useLocation();
+  const { goBack } = useNavigationHistory();
   const userId = localStorage.getItem("userId");
   const token = localStorage.getItem("authToken");
 
@@ -55,7 +56,14 @@ export default function Profile() {
   return (
     <div className="p-6 min-h-screen pb-24">
       <div className="flex items-center mb-6">
-        <BackButton className="mr-4" />
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={goBack}
+          className="mr-4 p-2 rounded-full bg-secondary"
+        >
+          <ArrowLeft className="w-5 h-5" />
+        </Button>
         <h2 className="text-xl font-semibold">Profile</h2>
       </div>
       
