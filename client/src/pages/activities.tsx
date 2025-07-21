@@ -241,13 +241,6 @@ export default function Activities() {
         ) : (
           filteredActivities.map((activity: any) => (
             <div key={activity.id} className="glass-card rounded-2xl overflow-hidden">
-              <div className="aspect-video bg-gradient-to-br from-gray-800 to-gray-900 flex items-center justify-center">
-                <img 
-                  src={activity.imageUrl} 
-                  alt={activity.name}
-                  className="w-full h-full object-cover"
-                />
-              </div>
               <div className="p-4">
                 <div className="flex items-center justify-between mb-2">
                   <h3 className="font-semibold">{activity.name}</h3>
