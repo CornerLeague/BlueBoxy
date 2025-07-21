@@ -55,15 +55,7 @@ export default function Profile() {
 
   return (
     <div className="p-6 min-h-screen pb-24">
-      <div className="flex items-center mb-6">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={goBack}
-          className="mr-4 p-2 rounded-full bg-secondary"
-        >
-          <ArrowLeft className="w-5 h-5" />
-        </Button>
+      <div className="mb-6">
         <h2 className="text-xl font-semibold">Profile</h2>
       </div>
       
