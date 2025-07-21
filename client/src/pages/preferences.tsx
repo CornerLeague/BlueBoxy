@@ -11,12 +11,11 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { preferenceQuestions, getScaleLabel, type PreferenceResponse } from "@/lib/preferences";
 import { getCurrentLocation } from "@/lib/geolocation";
-import { ArrowLeft, ArrowRight, MapPin, Loader2 } from "lucide-react";
-import { useNavigationHistory } from "@/hooks/useNavigationHistory";
+import { ArrowRight, MapPin, Loader2 } from "lucide-react";
+import { BackButton } from "@/components/ui/back-button";
 
 export default function Preferences() {
   const [, setLocation] = useLocation();
-  const { goBack } = useNavigationHistory();
   const { toast } = useToast();
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [responses, setResponses] = useState<Record<string, PreferenceResponse>>({});
@@ -309,14 +308,7 @@ export default function Preferences() {
         <Card className="w-full max-w-md bg-[#ffffff0a] backdrop-blur-sm border-white/20 text-white">
           <CardHeader className="text-center">
             <div className="flex items-center justify-between mb-4">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={goBack}
-                className="p-2 rounded-full bg-white/10 hover:bg-white/20"
-              >
-                <ArrowLeft className="w-5 h-5" />
-              </Button>
+              <BackButton className="bg-white/10 hover:bg-white/20" />
               <div className="flex-1" />
             </div>
             <div className="mx-auto mb-4 w-16 h-16 bg-gradient-to-r from-pink-500 to-purple-500 rounded-full flex items-center justify-center">
@@ -370,14 +362,7 @@ export default function Preferences() {
       <Card className="w-full max-w-2xl bg-[#ffffff0a] backdrop-blur-sm border-white/20 text-white">
         <CardHeader>
           <div className="flex items-center justify-between mb-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={goBack}
-              className="p-2 rounded-full bg-white/10 hover:bg-white/20"
-            >
-              <ArrowLeft className="w-5 h-5" />
-            </Button>
+            <BackButton className="bg-white/10 hover:bg-white/20" />
             <div className="flex-1" />
           </div>
           <div className="flex items-center justify-between">

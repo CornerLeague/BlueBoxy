@@ -3,9 +3,9 @@ import { useState } from "react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { ArrowLeft, MapPin, Star, Heart, ExternalLink, Settings, Navigation } from "lucide-react";
+import { MapPin, Star, Heart, ExternalLink, Settings, Navigation } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { useNavigationHistory } from "@/hooks/useNavigationHistory";
+import { BackButton } from "@/components/ui/back-button";
 import { apiRequest } from "@/lib/queryClient";
 
 const activityCategories = [
@@ -19,7 +19,6 @@ const activityCategories = [
 
 export default function Activities() {
   const [, setLocation] = useLocation();
-  const { goBack } = useNavigationHistory();
   const [activeCategory, setActiveCategory] = useState("recommended");
   const [isGeneratingAI, setIsGeneratingAI] = useState(false);
   const [aiRecommendations, setAIRecommendations] = useState<any[]>([]);
@@ -119,14 +118,7 @@ export default function Activities() {
   return (
     <div className="p-6 min-h-screen pb-24">
       <div className="flex items-center mb-6">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={goBack}
-          className="mr-4 p-2 rounded-full bg-secondary"
-        >
-          <ArrowLeft className="w-5 h-5" />
-        </Button>
+        <BackButton className="mr-4" />
         <h2 className="text-xl font-semibold">Date Activities</h2>
       </div>
       

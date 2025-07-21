@@ -2,11 +2,11 @@ import { useState } from "react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { ArrowLeft, Copy, Heart, Sun, Zap, Clock, MessageSquare } from "lucide-react";
+import { Copy, Heart, Sun, Zap, Clock, MessageSquare } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
-import { useNavigationHistory } from "@/hooks/useNavigationHistory";
+import { BackButton } from "@/components/ui/back-button";
 
 const messageCategories = [
   { id: "daily", label: "Daily Check-ins", active: true },
@@ -48,7 +48,6 @@ const sampleMessages = [
 
 export default function Messages() {
   const [, setLocation] = useLocation();
-  const { goBack } = useNavigationHistory();
   const [activeCategory, setActiveCategory] = useState("daily");
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -81,14 +80,7 @@ export default function Messages() {
   return (
     <div className="p-6 min-h-screen pb-24">
       <div className="flex items-center mb-6">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={goBack}
-          className="mr-4 p-2 rounded-full bg-secondary"
-        >
-          <ArrowLeft className="w-5 h-5" />
-        </Button>
+        <BackButton className="mr-4" />
         <h2 className="text-xl font-semibold">Thoughtful Messages</h2>
       </div>
       
