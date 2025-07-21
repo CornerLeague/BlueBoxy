@@ -52,16 +52,26 @@ export default function Activities() {
   };
 
   const generateAIRecommendations = async () => {
-    if (!userId || !user) return;
+    if (!userId || !user) {
+      toast({
+        title: "Error",
+        description: "Please log in to generate recommendations.",
+        variant: "destructive",
+      });
+      return;
+    }
     
     setIsGeneratingAI(true);
     try {
+      console.log("Generating AI recommendations for user:", userId);
       const response = await apiRequest("POST", "/api/recommendations/ai-powered", {
         userId: parseInt(userId),
         category: activeCategory,
         location: user.location,
         preferences: user.preferences
       });
+      
+      console.log("AI recommendations response:", response);
       
       // Update activities with AI recommendations
       if (response.recommendations?.activities) {
@@ -71,16 +81,23 @@ export default function Activities() {
         // Also invalidate queries to refresh other data
         queryClient.invalidateQueries({ queryKey: ["/api/activities"] });
         queryClient.invalidateQueries({ queryKey: ["/api/recommendations/location-based", userId] });
+        
+        toast({
+          title: "Recommendations Generated!",
+          description: "Fresh AI-powered date ideas are now available.",
+        });
+      } else {
+        toast({
+          title: "No Recommendations",
+          description: "Unable to generate recommendations at this time.",
+          variant: "destructive",
+        });
       }
-      
-      toast({
-        title: "Recommendations Generated!",
-        description: "Fresh AI-powered date ideas are now available.",
-      });
     } catch (error) {
+      console.error("Error generating AI recommendations:", error);
       toast({
         title: "Error",
-        description: "Failed to generate recommendations. Please try again.",
+        description: `Failed to generate recommendations: ${error.message || 'Unknown error'}`,
         variant: "destructive",
       });
     } finally {
