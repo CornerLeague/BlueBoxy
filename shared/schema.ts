@@ -46,28 +46,7 @@ export const assessmentResponses = pgTable("assessment_responses", {
   completedAt: timestamp("completed_at").defaultNow(),
 });
 
-export const recommendations = pgTable("recommendations", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
-  partnerId: uuid("partner_id").references(() => partners.id, { onDelete: "cascade" }),
-  type: varchar("type", { length: 50 }).notNull(),
-  category: varchar("category", { length: 50 }),
-  title: varchar("title", { length: 200 }).notNull(),
-  description: text("description"),
-  content: jsonb("content").notNull(),
-  context: jsonb("context").default({}),
-  priority: varchar("priority", { length: 20 }).notNull(),
-  personalityMatch: decimal("personality_match", { precision: 5, scale: 2 }),
-  relevanceScore: decimal("relevance_score", { precision: 5, scale: 2 }),
-  status: varchar("status", { length: 20 }).default("active"),
-  scheduledFor: timestamp("scheduled_for"),
-  expiresAt: timestamp("expires_at"),
-  viewedAt: timestamp("viewed_at"),
-  implementedAt: timestamp("implemented_at"),
-  feedback: jsonb("feedback"),
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
-});
+
 
 export const notifications = pgTable("notifications", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -121,7 +100,6 @@ export const activities = pgTable("activities", {
 export const userStats = pgTable("user_stats", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
-  messagesCopied: integer("messages_copied").default(0),
   eventsCreated: integer("events_created").default(0),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
@@ -145,11 +123,7 @@ export const insertAssessmentResponseSchema = createInsertSchema(assessmentRespo
   completedAt: true,
 });
 
-export const insertRecommendationSchema = createInsertSchema(recommendations).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-});
+
 
 export const insertNotificationSchema = createInsertSchema(notifications).omit({
   id: true,
@@ -179,8 +153,7 @@ export type Partner = typeof partners.$inferSelect;
 export type InsertPartner = typeof partners.$inferInsert;
 export type AssessmentResponse = typeof assessmentResponses.$inferSelect;
 export type InsertAssessmentResponse = typeof assessmentResponses.$inferInsert;
-export type Recommendation = typeof recommendations.$inferSelect;
-export type InsertRecommendation = typeof recommendations.$inferInsert;
+
 export type Notification = typeof notifications.$inferSelect;
 export type InsertNotification = typeof notifications.$inferInsert;
 export type CalendarEvent = typeof calendarEvents.$inferSelect;
@@ -194,7 +167,6 @@ export type InsertUserStats = typeof userStats.$inferInsert;
 export const usersRelations = relations(users, ({ one, many }) => ({
   partners: many(partners),
   assessmentResponses: many(assessmentResponses),
-  recommendations: many(recommendations),
   notifications: many(notifications),
   calendarEvents: many(calendarEvents),
   stats: one(userStats),
@@ -213,7 +185,6 @@ export const partnersRelations = relations(partners, ({ one, many }) => ({
     references: [users.id],
   }),
   assessmentResponses: many(assessmentResponses),
-  recommendations: many(recommendations),
   calendarEvents: many(calendarEvents),
 }));
 
@@ -228,12 +199,7 @@ export const assessmentResponsesRelations = relations(assessmentResponses, ({ on
   }),
 }));
 
-export const recommendationsRelations = relations(recommendations, ({ one }) => ({
-  user: one(users, {
-    fields: [recommendations.userId],
-    references: [users.id],
-  }),
-}));
+
 
 export const notificationsRelations = relations(notifications, ({ one }) => ({
   user: one(users, {

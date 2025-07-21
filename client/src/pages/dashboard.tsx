@@ -25,19 +25,7 @@ export default function Dashboard() {
     enabled: isAuthenticated && !!userId,
   });
 
-  const { data: recommendations = [] } = useQuery({
-    queryKey: [`/api/recommendations/messages`, userId],
-    queryFn: () => fetch(`/api/recommendations/messages?userId=${userId}`).then(res => res.json()),
-    enabled: isAuthenticated && !!userId,
-  });
 
-  const handleCopyMessage = (message: string) => {
-    navigator.clipboard.writeText(message);
-    toast({
-      title: "Message copied!",
-      description: "The message has been copied to your clipboard.",
-    });
-  };
 
   // Handle guest user with assessment results
   if (isGuest) {

@@ -103,48 +103,7 @@ export default function Messages() {
         ))}
       </div>
       
-      {/* Message Cards */}
-      <div className="space-y-4">
-        {filteredMessages.map((message) => {
-          const IconComponent = message.icon;
-          return (
-            <div key={message.id} className="glass-card rounded-2xl p-4">
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center">
-                  <div className={`w-8 h-8 ${message.iconColor} rounded-full flex items-center justify-center mr-3 shadow-lg`}>
-                    <IconComponent className="w-4 h-4 text-white" />
-                  </div>
-                  <span className="text-sm font-medium">{message.title}</span>
-                </div>
-                <span className="text-xs text-primary font-medium">{message.personalityMatch}</span>
-              </div>
-              <p className="text-foreground mb-4 leading-relaxed">{message.content}</p>
-              <div className="flex space-x-2">
-                <button
-                  onClick={() => handleCopyMessage(message.content)}
-                  className="flex-1 bg-gradient-to-r from-primary to-blue-500 text-white hover:from-primary/90 hover:to-blue-500/90 px-4 py-2 rounded-xl font-medium shadow-lg transition-all duration-200 flex items-center justify-center"
-                >
-                  <Copy className="w-4 h-4 mr-2" />
-                  Copy Message
-                </button>
-                <button className="control-btn px-4 py-2 rounded-xl">
-                  <Heart className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-      
-      {filteredMessages.length === 0 && (
-        <div className="text-center py-12">
-          <MessageSquare className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-          <h3 className="text-lg font-semibold mb-2">No messages yet</h3>
-          <p className="text-muted-foreground">
-            Messages for this category will appear here once generated.
-          </p>
-        </div>
-      )}
+
     </div>
   );
 }

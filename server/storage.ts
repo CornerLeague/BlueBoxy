@@ -2,7 +2,6 @@ import {
   users, 
   assessmentResponses,
   partners,
-  recommendations, 
   activities, 
   notifications,
   calendarEvents,
@@ -13,8 +12,6 @@ import {
   type InsertPartner,
   type AssessmentResponse,
   type InsertAssessmentResponse,
-  type Recommendation,
-  type InsertRecommendation,
   type Activity,
   type InsertActivity,
   type Notification,
@@ -50,7 +47,6 @@ export interface IStorage {
   
   // User Statistics
   getUserStats(userId: number): Promise<UserStats | undefined>;
-  incrementMessagesCopied(userId: number): Promise<UserStats>;
   incrementEventsCreated(userId: number): Promise<UserStats>;
 }
 
@@ -455,34 +451,7 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  async incrementMessagesCopied(userId: number): Promise<UserStats> {
-    // First check if stats record exists
-    let stats = await this.getUserStats(userId);
-    
-    if (!stats) {
-      // Create new stats record
-      const [newStats] = await db
-        .insert(userStats)
-        .values({ 
-          userId, 
-          messagesCopied: 1, 
-          eventsCreated: 0 
-        })
-        .returning();
-      return newStats;
-    } else {
-      // Update existing record
-      const [updatedStats] = await db
-        .update(userStats)
-        .set({ 
-          messagesCopied: stats.messagesCopied + 1,
-          updatedAt: new Date()
-        })
-        .where(eq(userStats.userId, userId))
-        .returning();
-      return updatedStats;
-    }
-  }
+
 
   async incrementEventsCreated(userId: number): Promise<UserStats> {
     // First check if stats record exists
@@ -494,7 +463,6 @@ export class DatabaseStorage implements IStorage {
         .insert(userStats)
         .values({ 
           userId, 
-          messagesCopied: 0, 
           eventsCreated: 1 
         })
         .returning();

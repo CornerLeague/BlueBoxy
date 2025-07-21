@@ -71,11 +71,7 @@ export default function Profile() {
           </div>
         </div>
         
-        <div className="grid grid-cols-2 gap-4">
-          <div className="text-center">
-            <div className="text-2xl font-bold text-primary">{userStats?.messagesCopied || 0}</div>
-            <div className="text-muted-foreground text-sm">Messages Sent</div>
-          </div>
+        <div className="flex justify-center">
           <div className="text-center">
             <div className="text-2xl font-bold text-success">{userStats?.eventsCreated || 0}</div>
             <div className="text-muted-foreground text-sm">Dates Planned</div>

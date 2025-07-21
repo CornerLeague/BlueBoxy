@@ -4,14 +4,12 @@ import { storage } from "./storage";
 import {
   insertUserSchema,
   insertAssessmentResponseSchema,
-  insertRecommendationSchema,
   insertCalendarEventSchema
 } from "@shared/schema";
 import { z } from "zod";
 import bcrypt from "bcrypt";
 import { 
   generatePersonalityInsight, 
-  generatePersonalizedMessages, 
   generateActivityRecommendations,
   generateLocationBasedRecommendations,
   generateAIPoweredRecommendations,
@@ -206,52 +204,7 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  // Remove authenticateToken for recommendations endpoints
-  app.get("/api/recommendations/messages", async (req, res) => {
-    try {
-      const userIdStr = req.query.userId as string;
-      const userId = parseInt(userIdStr);
-      
-      if (isNaN(userId)) {
-        return res.status(400).json({ error: "Invalid user ID" });
-      }
-      
-      const user = await storage.getUser(userId);
-      const assessment = await storage.getAssessmentByUserId(userId);
-      
-      if (!user || !assessment) {
-        return res.status(404).json({ error: "User or assessment not found" });
-      }
 
-      const recommendationContext: RecommendationContext = {
-        userName: user.name,
-        partnerName: user.partnerName,
-        personalityType: user.personalityType,
-        relationshipDuration: user.relationshipDuration,
-        assessmentResponses: assessment.responses
-      };
-
-      const messages = await generatePersonalizedMessages(recommendationContext, 5);
-      
-      // Convert to recommendation format
-      const recommendations = messages.map((message, index) => ({
-        id: index + 1,
-        userId: userId,
-        type: "message",
-        category: "daily",
-        content: message,
-        priority: index === 0 ? "high" : "medium",
-        personalityMatch: "AI-generated",
-        isRead: false,
-        createdAt: new Date()
-      }));
-
-      res.json(recommendations);
-    } catch (error) {
-      console.error("Error generating message recommendations:", error);
-      res.status(500).json({ error: "Failed to generate recommendations" });
-    }
-  });
 
   // User preferences route - simplified without authentication
   app.post("/api/user/preferences", async (req, res) => {
@@ -520,7 +473,7 @@ export async function registerRoutes(app: Express) {
       
       if (!stats) {
         // Return default stats if none exist
-        return res.json({ messagesCopied: 0, eventsCreated: 0 });
+        return res.json({ eventsCreated: 0 });
       }
       
       res.json(stats);
@@ -530,21 +483,7 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  app.post("/api/user/stats/message-copied", async (req, res) => {
-    try {
-      const { userId } = req.body;
-      
-      if (!userId) {
-        return res.status(400).json({ error: "User ID is required" });
-      }
-      
-      const stats = await storage.incrementMessagesCopied(parseInt(userId));
-      res.json(stats);
-    } catch (error) {
-      console.error("Error updating message stats:", error);
-      res.status(500).json({ error: "Failed to update statistics" });
-    }
-  });
+
 
   // AI-powered recommendations endpoint
   app.post("/api/recommendations/ai-powered", async (req: any, res) => {
