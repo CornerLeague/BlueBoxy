@@ -278,15 +278,7 @@ export default function Activities() {
         )}
       </div>
       
-      {filteredActivities.length === 0 && !isLoading && (
-        <div className="text-center py-12">
-          <MapPin className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-          <h3 className="text-lg font-semibold mb-2">No activities found</h3>
-          <p className="text-muted-foreground">
-            Activities for this category will appear here.
-          </p>
-        </div>
-      )}
+      
     </div>
   );
 }
