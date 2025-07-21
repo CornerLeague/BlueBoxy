@@ -145,12 +145,6 @@ export default function Activities() {
               <h3 className="font-semibold text-sm">
                 {hasLocationPreferences ? "Location-Based Recommendations" : "Setup Location Preferences"}
               </h3>
-              <p className="text-muted-foreground text-xs">
-                {hasLocationPreferences 
-                  ? `${activities.length} recommendations available`
-                  : "Get personalized local date ideas"
-                }
-              </p>
             </div>
           </div>
           <Button
