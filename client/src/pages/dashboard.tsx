@@ -195,21 +195,10 @@ export default function Dashboard() {
               {user.personalityType || "Thoughtful Harmonizer"}
             </span>
           </div>
-          <p className="text-muted-foreground text-sm mb-6">
+          <p className="text-muted-foreground text-sm">
             {user.personalityInsight?.description || 
              `${user.partnerName} values meaningful connections and appreciates thoughtful gestures. They respond well to quality time and words of affirmation.`}
           </p>
-          
-          <div className="flex items-center justify-between">
-            <div className="flex items-center">
-              <div className="w-3 h-3 bg-success rounded-full mr-2"></div>
-              <span className="text-sm">Compatibility: 92%</span>
-            </div>
-            <div className="flex items-center">
-              <div className="w-3 h-3 bg-warning rounded-full mr-2"></div>
-              <span className="text-sm text-warning">Needs attention</span>
-            </div>
-          </div>
         </div>
       </div>
       
