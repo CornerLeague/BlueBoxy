@@ -41,7 +41,6 @@ export default function Messages() {
   // Fetch message categories from API
   const { data: categoriesResponse } = useQuery({
     queryKey: ["/api/messages/categories"],
-    queryFn: () => apiRequest("/api/messages/categories"),
   });
 
   // Message generation mutation
@@ -57,14 +56,13 @@ export default function Messages() {
         currentTime.getHours() < 17 ? "afternoon" :
         currentTime.getHours() < 21 ? "evening" : "night";
 
-      return apiRequest("/api/messages/generate", {
-        method: "POST",
-        body: {
-          userId: parseInt(userId),
-          category: categoryId,
-          timeOfDay
-        }
+      const response = await apiRequest("POST", "/api/messages/generate", {
+        userId: parseInt(userId),
+        category: categoryId,
+        timeOfDay
       });
+      
+      return await response.json();
     },
     onSuccess: (data) => {
       if (data.success) {
