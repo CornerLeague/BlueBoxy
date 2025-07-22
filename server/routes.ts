@@ -15,6 +15,11 @@ import {
   generateAIPoweredRecommendations,
   type RecommendationContext 
 } from "./openai";
+import { 
+  generatePersonalizedMessages, 
+  getMessageCategories,
+  type GenerateMessageRequest 
+} from "./message-generation";
 import { calendarProviderManager } from "./calendar-providers";
 
 // Remove JWT authentication - use simple session management
@@ -522,6 +527,62 @@ export async function registerRoutes(app: Express) {
     } catch (error) {
       console.error("Error generating AI-powered recommendations:", error);
       res.status(500).json({ error: "Failed to generate AI recommendations" });
+    }
+  });
+
+  // Message Generation Routes
+  app.post("/api/messages/generate", async (req, res) => {
+    try {
+      const { userId, category, timeOfDay, recentContext, specialOccasion } = req.body;
+      
+      if (!userId || !category) {
+        return res.status(400).json({ 
+          success: false, 
+          error: "User ID and category are required" 
+        });
+      }
+
+      const user = await storage.getUser(parseInt(userId));
+      if (!user) {
+        return res.status(404).json({ 
+          success: false, 
+          error: "User not found" 
+        });
+      }
+
+      const request: GenerateMessageRequest = {
+        userId: userId.toString(),
+        category,
+        timeOfDay,
+        recentContext,
+        specialOccasion
+      };
+
+      const result = await generatePersonalizedMessages(request, user);
+      res.json(result);
+
+    } catch (error) {
+      console.error("Error generating messages:", error);
+      res.status(500).json({ 
+        success: false, 
+        error: "Failed to generate messages" 
+      });
+    }
+  });
+
+  app.get("/api/messages/categories", async (req, res) => {
+    try {
+      const categories = getMessageCategories();
+      res.json({
+        success: true,
+        categories
+      });
+    } catch (error) {
+      console.error("Error fetching message categories:", error);
+      res.status(500).json({ 
+        success: false, 
+        error: "Failed to fetch message categories" 
+      });
     }
   });
 

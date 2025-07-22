@@ -1,87 +1,132 @@
 import { useState } from "react";
-import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { ArrowLeft, Copy, Heart, Sun, Zap, Clock, MessageSquare } from "lucide-react";
+import { Copy, Heart, MessageSquare, Share2, Sparkles, Wand2, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
-import { useNavigationHistory } from "@/hooks/useNavigationHistory";
 
-const messageCategories = [
-  { id: "daily", label: "Daily Check-ins", active: true },
-  { id: "appreciation", label: "Appreciation", active: false },
-  { id: "support", label: "Support", active: false },
-  { id: "romantic", label: "Romantic", active: false },
-  { id: "playful", label: "Playful", active: false },
-];
+interface GeneratedMessage {
+  id: string;
+  content: string;
+  category: string;
+  personalityMatch: string;
+  tone: string;
+  estimatedImpact: "high" | "medium" | "low";
+}
 
-const sampleMessages = [
-  {
-    id: 1,
-    category: "daily",
-    title: "Morning Energy",
-    content: "Good morning, beautiful! I woke up thinking about your smile and how it brightens my entire day. Hope you have an amazing day ahead! ☀️💙",
-    personalityMatch: "Perfect for Harmonizers",
-    icon: Sun,
-    iconColor: "bg-gradient-to-br from-primary to-blue-400",
-  },
-  {
-    id: 2,
-    category: "support",
-    title: "Motivation Boost",
-    content: "You've been working so hard lately, and I'm incredibly proud of your dedication. Remember, you're capable of amazing things! I believe in you completely. 💪",
-    personalityMatch: "High Impact",
-    icon: Zap,
-    iconColor: "bg-gradient-to-br from-success to-green-400",
-  },
-  {
-    id: 3,
-    category: "daily",
-    title: "Thoughtful Check-in",
-    content: "How was your day, love? I've been thinking about you and would love to hear all about it when you have a moment. You're always on my mind. 💙",
-    personalityMatch: "Evening",
-    icon: Clock,
-    iconColor: "bg-gradient-to-br from-warning to-yellow-400",
-  },
+interface MessageCategory {
+  id: string;
+  label: string;
+  description: string;
+  icon: any;
+}
+
+const messageCategories: MessageCategory[] = [
+  { id: "daily_checkins", label: "Daily Check-ins", description: "Show daily care and maintain connection", icon: MessageSquare },
+  { id: "appreciation", label: "Appreciation", description: "Express gratitude and acknowledge partner's value", icon: Heart },
+  { id: "support", label: "Support", description: "Provide emotional support during challenges", icon: Sparkles },
+  { id: "romantic", label: "Romantic", description: "Express love and romantic feelings", icon: Heart },
+  { id: "playful", label: "Playful", description: "Add fun and lightness to the relationship", icon: Share2 }
 ];
 
 export default function Messages() {
-  const [, setLocation] = useLocation();
-  const { goBack } = useNavigationHistory();
-  const [activeCategory, setActiveCategory] = useState("daily");
+  const [activeCategory, setActiveCategory] = useState("daily_checkins");
+  const [generatedMessages, setGeneratedMessages] = useState<GeneratedMessage[]>([]);
+  const [generationContext, setGenerationContext] = useState<any>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const userId = localStorage.getItem("userId");
 
-  const incrementMessageMutation = useMutation({
-    mutationFn: async () => {
-      if (!userId) return;
-      await apiRequest("POST", "/api/user/stats/message-copied", { userId: parseInt(userId) });
-    },
-    onSuccess: () => {
-      // Invalidate user stats to refresh the profile page
-      queryClient.invalidateQueries({ queryKey: [`/api/user/stats`, userId] });
-    },
+  // Fetch message categories from API
+  const { data: categoriesResponse } = useQuery({
+    queryKey: ["/api/messages/categories"],
+    queryFn: () => apiRequest("/api/messages/categories"),
   });
 
-  const handleCopyMessage = (message: string) => {
-    navigator.clipboard.writeText(message);
-    toast({
-      title: "Message copied!",
-      description: "The message has been copied to your clipboard.",
-    });
-    
-    // Track the copy action
-    incrementMessageMutation.mutate();
+  // Message generation mutation
+  const generateMessagesMutation = useMutation({
+    mutationFn: async (categoryId: string) => {
+      if (!userId) {
+        throw new Error("User ID not found");
+      }
+
+      const currentTime = new Date();
+      const timeOfDay = 
+        currentTime.getHours() < 12 ? "morning" :
+        currentTime.getHours() < 17 ? "afternoon" :
+        currentTime.getHours() < 21 ? "evening" : "night";
+
+      return apiRequest("/api/messages/generate", {
+        method: "POST",
+        body: {
+          userId: parseInt(userId),
+          category: categoryId,
+          timeOfDay
+        }
+      });
+    },
+    onSuccess: (data) => {
+      if (data.success) {
+        setGeneratedMessages(data.messages);
+        setGenerationContext(data.context);
+        toast({
+          title: "Messages Generated!",
+          description: `Created ${data.messages.length} personalized messages for you.`,
+        });
+      } else {
+        throw new Error(data.error || "Failed to generate messages");
+      }
+    },
+    onError: (error: any) => {
+      console.error("Message generation error:", error);
+      toast({
+        title: "Generation Failed",
+        description: error.message || "Failed to generate messages. Please try again.",
+        variant: "destructive",
+      });
+    }
+  });
+
+  const handleGenerateMessages = (categoryId: string) => {
+    generateMessagesMutation.mutate(categoryId);
   };
 
-  const filteredMessages = sampleMessages.filter(msg => msg.category === activeCategory);
+  const handleCopyMessage = async (message: GeneratedMessage) => {
+    try {
+      await navigator.clipboard.writeText(message.content);
+      
+      toast({
+        title: "Copied!",
+        description: "Message copied to clipboard",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to copy message",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const getImpactColor = (impact: string) => {
+    switch (impact) {
+      case "high": return "text-green-600 bg-green-50";
+      case "medium": return "text-yellow-600 bg-yellow-50";
+      case "low": return "text-blue-600 bg-blue-50";
+      default: return "text-gray-600 bg-gray-50";
+    }
+  };
+
+  const activeMessageCategory = messageCategories.find(cat => cat.id === activeCategory);
 
   return (
     <div className="p-6 min-h-screen pb-24">
       <div className="mb-6">
-        <h2 className="text-xl font-semibold">Thoughtful Messages</h2>
+        <h2 className="text-xl font-semibold">AI Message Generator</h2>
+        <p className="text-muted-foreground text-sm mt-1">
+          Generate personalized messages based on your partner's personality
+        </p>
       </div>
       
       {/* Categories */}
@@ -98,12 +143,101 @@ export default function Messages() {
                 : "bg-secondary text-muted-foreground"
             }`}
           >
+            <category.icon className="w-4 h-4 mr-2" />
             {category.label}
           </Button>
         ))}
       </div>
-      
 
+      {/* Category Description & Generate Button */}
+      {activeMessageCategory && (
+        <Card className="mb-6">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="font-semibold text-lg">{activeMessageCategory.label}</h3>
+                <p className="text-muted-foreground text-sm">{activeMessageCategory.description}</p>
+              </div>
+              <Button 
+                onClick={() => handleGenerateMessages(activeCategory)}
+                disabled={generateMessagesMutation.isPending}
+                className="bg-gradient-to-r from-primary to-blue-400 text-white"
+              >
+                {generateMessagesMutation.isPending ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Generating...
+                  </>
+                ) : (
+                  <>
+                    <Wand2 className="w-4 h-4 mr-2" />
+                    Generate Messages
+                  </>
+                )}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Generated Messages */}
+      {generatedMessages.length > 0 && (
+        <div className="space-y-4">
+          {generationContext && (
+            <div className="bg-primary/10 rounded-xl p-4 mb-4">
+              <h4 className="font-semibold text-primary mb-2">Generated for: {generationContext.partnerName}</h4>
+              <div className="text-sm text-muted-foreground">
+                <p>Personality Type: <span className="font-medium text-primary">{generationContext.personalityType}</span></p>
+                <p>Category: <span className="font-medium">{generationContext.category}</span></p>
+              </div>
+            </div>
+          )}
+
+          {generatedMessages.map((message) => (
+            <Card key={message.id} className="glass-card hover:shadow-lg transition-all duration-200">
+              <CardContent className="p-4">
+                <div className="flex justify-between items-start mb-3">
+                  <div className="flex items-center space-x-2">
+                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${getImpactColor(message.estimatedImpact)}`}>
+                      {message.estimatedImpact} impact
+                    </span>
+                    <span className="px-2 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-600">
+                      {message.tone}
+                    </span>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleCopyMessage(message)}
+                    className="text-muted-foreground hover:text-primary"
+                  >
+                    <Copy className="w-4 h-4" />
+                  </Button>
+                </div>
+                
+                <p className="text-foreground leading-relaxed mb-3">
+                  {message.content}
+                </p>
+                
+                <div className="text-xs text-muted-foreground">
+                  Tailored for: {message.personalityMatch}
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+
+      {/* Empty State */}
+      {generatedMessages.length === 0 && !generateMessagesMutation.isPending && (
+        <div className="text-center py-12">
+          <Wand2 className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+          <h3 className="text-lg font-semibold mb-2">Ready to Generate Messages</h3>
+          <p className="text-muted-foreground mb-4">
+            Select a category above and click "Generate Messages" to create personalized messages for your partner.
+          </p>
+        </div>
+      )}
     </div>
   );
 }
