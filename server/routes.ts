@@ -20,6 +20,7 @@ import {
   getMessageCategories,
   type GenerateMessageRequest 
 } from "./message-generation";
+import { grokAIService } from "./grok-ai";
 import { calendarProviderManager } from "./calendar-providers";
 
 // Remove JWT authentication - use simple session management
@@ -318,6 +319,143 @@ export async function registerRoutes(app: Express) {
     } catch (error) {
       console.error("Error generating location-based recommendations:", error);
       res.status(500).json({ error: "Failed to generate location-based recommendations" });
+    }
+  });
+
+  // New Grok AI Location-Based Recommendation Endpoints
+  app.post("/api/recommendations/location-based", async (req, res) => {
+    try {
+      const { userId, location, radius, category, preferences, personalityType, resetAlgorithm } = req.body;
+      
+      if (!userId || !location || !radius || !category) {
+        return res.status(400).json({ error: "Missing required parameters" });
+      }
+      
+      if (resetAlgorithm) {
+        grokAIService.resetAlgorithm(userId, category);
+      }
+      
+      const result = await grokAIService.generateActivityRecommendations(
+        userId,
+        location,
+        radius,
+        category,
+        preferences,
+        personalityType
+      );
+      
+      res.json({
+        success: true,
+        recommendations: result.recommendations,
+        canGenerateMore: result.canGenerateMore,
+        generationsRemaining: result.generationsRemaining,
+        category,
+        radius
+      });
+    } catch (error) {
+      console.error("Error generating location-based recommendations:", error);
+      res.status(500).json({ 
+        success: false,
+        error: error.message || "Failed to generate location-based recommendations" 
+      });
+    }
+  });
+
+  app.post("/api/recommendations/drinks", async (req, res) => {
+    try {
+      const { userId, location, radius, drinkPreferences, personalityType, resetAlgorithm } = req.body;
+      
+      if (!userId || !location || !radius || !drinkPreferences) {
+        return res.status(400).json({ error: "Missing required parameters" });
+      }
+      
+      if (resetAlgorithm) {
+        grokAIService.resetAlgorithm(userId, "drinks");
+      }
+      
+      const result = await grokAIService.generateDrinkRecommendations(
+        userId,
+        location,
+        radius,
+        drinkPreferences,
+        personalityType
+      );
+      
+      res.json({
+        success: true,
+        recommendations: result.recommendations,
+        canGenerateMore: result.canGenerateMore,
+        generationsRemaining: result.generationsRemaining
+      });
+    } catch (error) {
+      console.error("Error generating drink recommendations:", error);
+      res.status(500).json({ 
+        success: false,
+        error: error.message || "Failed to generate drink recommendations" 
+      });
+    }
+  });
+
+  app.get("/api/recommendations/categories", async (req, res) => {
+    try {
+      res.json({
+        success: true,
+        categories: [
+          { id: "recommended", label: "Recommended", icon: "⭐", color: "blue" },
+          { id: "near_me", label: "Near Me", icon: "📍", color: "green" },
+          { id: "dining", label: "Dining", icon: "🍽️", color: "orange" },
+          { id: "outdoor", label: "Outdoor", icon: "🌳", color: "emerald" },
+          { id: "cultural", label: "Cultural", icon: "🎭", color: "purple" },
+          { id: "active", label: "Active", icon: "⚡", color: "red" },
+          { id: "drinks", label: "Drinks", icon: "🍹", color: "amber" }
+        ],
+        drinkPreferences: [
+          { id: "coffee", label: "Coffee", icon: "☕" },
+          { id: "tea", label: "Tea", icon: "🍵" },
+          { id: "alcohol", label: "Alcohol", icon: "🍷" },
+          { id: "non_alcohol", label: "Non-Alcohol", icon: "🥤" },
+          { id: "boba", label: "Boba", icon: "🧋" },
+          { id: "other", label: "Other", icon: "🥛" }
+        ]
+      });
+    } catch (error) {
+      console.error("Error fetching categories:", error);
+      res.status(500).json({ 
+        success: false,
+        error: "Failed to fetch categories" 
+      });
+    }
+  });
+
+  // Update user preferences endpoint to include drink preferences
+  app.put("/api/user/preferences", async (req, res) => {
+    try {
+      const { userId, preferences } = req.body;
+      
+      if (!userId) {
+        return res.status(400).json({ error: "User ID is required" });
+      }
+      
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+      
+      const updatedUser = await storage.updateUser(userId, {
+        preferences: { ...user.preferences, ...preferences }
+      });
+      
+      res.json({
+        success: true,
+        user: updatedUser,
+        preferences: updatedUser.preferences
+      });
+    } catch (error) {
+      console.error("Error updating user preferences:", error);
+      res.status(500).json({ 
+        success: false,
+        error: "Failed to update preferences" 
+      });
     }
   });
 
