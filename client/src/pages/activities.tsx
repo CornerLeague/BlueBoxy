@@ -30,7 +30,6 @@ import { apiRequest } from "@/lib/queryClient";
 
 // Activity categories with specialized icons and colors
 const activityCategories = [
-  { id: "recommended", label: "Recommended", icon: Sparkles, color: "text-blue-600" },
   { id: "near_me", label: "Near Me", icon: Navigation, color: "text-green-600" },
   { id: "dining", label: "Dining", icon: Utensils, color: "text-orange-600" },
   { id: "outdoor", label: "Outdoor", icon: TreePine, color: "text-emerald-600" },
@@ -69,7 +68,7 @@ interface ActivityRecommendation {
 
 export default function Activities() {
   const [, setLocation] = useLocation();
-  const [activeCategory, setActiveCategory] = useState("recommended");
+  const [activeCategory, setActiveCategory] = useState("near_me");
   const [activeDrinkTab, setActiveDrinkTab] = useState("coffee");
   const [userLocation, setUserLocation] = useState<{latitude: number, longitude: number} | null>(null);
   const [locationName, setLocationName] = useState<string>("");
