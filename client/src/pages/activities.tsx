@@ -312,17 +312,11 @@ export default function Activities() {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => userLocation ? detectLocation() : setLocation("/preferences")}
+              onClick={() => setLocation("/preferences")}
               className="px-3 py-1 text-xs"
             >
-              {userLocation ? (
-                <>
-                  <Settings className="w-3 h-3 mr-1" />
-                  Settings
-                </>
-              ) : (
-                "Setup"
-              )}
+              <Settings className="w-3 h-3 mr-1" />
+              {userLocation ? "Preferences" : "Setup"}
             </Button>
           </div>
         </div>
