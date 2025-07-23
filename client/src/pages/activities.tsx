@@ -458,8 +458,8 @@ export default function Activities() {
             return (
               <Card key={activity.id} className="glass-card hover:shadow-xl transition-all duration-300 border-l-4 border-l-primary">
                 <CardContent className="p-5">
-                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start mb-3">
-                    <div className="flex-1">
+                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start mb-3 w-full overflow-hidden">
+                    <div className="flex-1 min-w-0 pr-2 sm:pr-4">
                       <h3 className="font-semibold text-lg text-foreground mb-1">{activity.name}</h3>
                       
                       <div className="grid grid-cols-2 sm:flex sm:items-center sm:space-x-4 gap-2 sm:gap-0 mb-3">
@@ -515,11 +515,11 @@ export default function Activities() {
                       )}
                     </div>
                     
-                    <div className="flex flex-row sm:flex-col space-x-2 sm:space-x-0 sm:space-y-2 mt-3 sm:mt-0 sm:ml-4">
+                    <div className="flex flex-row sm:flex-col space-x-2 sm:space-x-0 sm:space-y-2 mt-3 sm:mt-0 sm:ml-2 flex-shrink-0 w-auto sm:w-auto max-w-[120px] sm:max-w-none">
                       <Button
                         size="sm"
                         onClick={() => handleScheduleActivity(activity.name)}
-                        className="bg-gradient-to-r from-green-500 to-emerald-500 text-white text-xs px-3 py-1 flex-1 sm:flex-none"
+                        className="bg-gradient-to-r from-green-500 to-emerald-500 text-white text-xs px-2 sm:px-3 py-1 flex-1 sm:flex-none whitespace-nowrap min-w-0"
                       >
                         Schedule
                       </Button>
@@ -528,7 +528,7 @@ export default function Activities() {
                           variant="outline"
                           size="sm"
                           onClick={() => window.open(activity.website, '_blank')}
-                          className="text-xs px-3 py-1"
+                          className="text-xs px-2 sm:px-3 py-1 flex-shrink-0 w-8 sm:w-auto"
                         >
                           <ExternalLink className="w-3 h-3" />
                         </Button>
