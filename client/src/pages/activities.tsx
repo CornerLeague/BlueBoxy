@@ -442,11 +442,7 @@ export default function Activities() {
             )}
           </div>
           
-          {getCurrentRecommendations().length > 0 && (
-            <Badge variant="secondary" className="text-xs self-start sm:self-auto">
-              {getCurrentRecommendations().length} recommendations
-            </Badge>
-          )}
+          
         </div>
       )}
       
