@@ -278,32 +278,32 @@ export default function Activities() {
       {/* Location Status & Controls */}
       <div className="glass-card rounded-2xl p-4 mb-6">
         <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center">
-            <div className="w-8 h-8 bg-gradient-to-br from-primary to-blue-500 rounded-full flex items-center justify-center mr-3 shadow-lg">
+          <div className="flex items-center min-w-0 flex-1 mr-2">
+            <div className="w-8 h-8 bg-gradient-to-br from-primary to-blue-500 rounded-full flex items-center justify-center mr-3 shadow-lg flex-shrink-0">
               {userLocation ? (
                 <Navigation className="w-4 h-4 text-white" />
               ) : (
                 <MapPin className="w-4 h-4 text-white" />
               )}
             </div>
-            <div>
-              <h3 className="font-semibold text-sm">
+            <div className="min-w-0 flex-1">
+              <h3 className="font-semibold text-sm truncate">
                 {userLocation ? "Location-Based Recommendations" : "Setup Location"}
               </h3>
               {userLocation && locationName && (
-                <p className="text-xs text-muted-foreground">
+                <p className="text-xs text-muted-foreground truncate">
                   {locationName}
                 </p>
               )}
             </div>
           </div>
-          <div className="flex space-x-2">
+          <div className="flex space-x-1 flex-shrink-0">
             {userLocation && (
               <Button
                 variant="outline"
                 size="sm"
                 onClick={detectLocation}
-                className="px-3 py-1 text-xs"
+                className="px-2 py-1 text-xs whitespace-nowrap"
               >
                 <RefreshCw className="w-3 h-3 mr-1" />
                 Update
@@ -313,10 +313,10 @@ export default function Activities() {
               variant="outline"
               size="sm"
               onClick={() => setLocation("/preferences")}
-              className="px-3 py-1 text-xs"
+              className="px-2 py-1 text-xs whitespace-nowrap"
             >
               <Settings className="w-3 h-3 mr-1" />
-              {userLocation ? "Preferences" : "Setup"}
+              {userLocation ? "Prefs" : "Setup"}
             </Button>
           </div>
         </div>
