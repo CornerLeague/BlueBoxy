@@ -13,9 +13,7 @@ export default function GetStarted() {
           <Heart className="w-12 h-12 text-white" />
         </div>
         <h1 className="text-3xl font-bold mb-4">Welcome to BlueBoxy</h1>
-        <p className="text-muted-foreground text-lg mb-8 px-4">
-          Your AI-powered relationship assistant that helps you become a more thoughtful, attentive partner
-        </p>
+        <p className="text-muted-foreground text-lg mb-8 px-4">Your AI-powered relationship assistant</p>
         
         <div className="w-full space-y-4 mb-8">
           <Card className="p-4">
