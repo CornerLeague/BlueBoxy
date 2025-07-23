@@ -222,9 +222,14 @@ export default function Activities() {
           setCanGenerateMore(result.canGenerateMore);
           setGenerationsRemaining(result.generationsRemaining);
           
+          // Format category name for display
+          const categoryDisplayName = activeCategory === "near_me" 
+            ? '"Near Me"' 
+            : activeCategory.charAt(0).toUpperCase() + activeCategory.slice(1);
+          
           toast({
             title: "Recommendations generated!",
-            description: `Found ${result.recommendations.length} ${activeCategory} suggestions near you.`,
+            description: `Found ${result.recommendations.length} ${categoryDisplayName} suggestions near you.`,
           });
         }
       }
