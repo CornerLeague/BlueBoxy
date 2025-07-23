@@ -134,6 +134,9 @@ export const insertCalendarEventSchema = createInsertSchema(calendarEvents).omit
   id: true,
   createdAt: true,
   updatedAt: true,
+}).extend({
+  startTime: z.string().or(z.date()).transform((val) => new Date(val)),
+  endTime: z.string().or(z.date()).transform((val) => new Date(val)),
 });
 
 export const insertActivitySchema = createInsertSchema(activities).omit({
