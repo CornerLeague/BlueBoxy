@@ -219,7 +219,7 @@ export default function Activities() {
           
           // Format category name for display
           const categoryDisplayName = activeCategory === "near_me" 
-            ? '"Near Me"' 
+            ? "Near Me" 
             : activeCategory.charAt(0).toUpperCase() + activeCategory.slice(1);
           
           toast({
