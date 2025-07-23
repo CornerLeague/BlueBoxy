@@ -249,7 +249,7 @@ export class GrokAIService {
             content: prompt
           }
         ],
-        model: 'grok-2-1212',
+        model: 'grok-3-mini',
         temperature: 0.7
       },
       {
