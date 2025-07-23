@@ -200,18 +200,7 @@ export default function Calendar() {
         </div>
       </div>
       
-      {/* Quick Actions */}
-      <div className="grid grid-cols-2 gap-4">
-        <button className="bg-gradient-to-r from-primary to-blue-500 text-white p-4 rounded-2xl flex flex-col items-center h-auto shadow-lg transition-all duration-200 hover:shadow-xl">
-          <Plus className="w-6 h-6 mb-2" />
-          <span className="text-sm font-medium">Add Event</span>
-        </button>
-        
-        <button className="control-btn text-foreground p-4 rounded-2xl flex flex-col items-center h-auto">
-          <Clock className="w-6 h-6 mb-2" />
-          <span className="text-sm font-medium">Set Reminder</span>
-        </button>
-      </div>
+      
     </div>
   );
 }
