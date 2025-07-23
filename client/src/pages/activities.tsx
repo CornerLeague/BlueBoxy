@@ -30,6 +30,7 @@ import { apiRequest } from "@/lib/queryClient";
 
 // Activity categories with specialized icons and colors
 const activityCategories = [
+  { id: "recommended", label: "Recommended", icon: Sparkles, color: "text-blue-600" },
   { id: "near_me", label: "Near Me", icon: Navigation, color: "text-green-600" },
   { id: "dining", label: "Dining", icon: Utensils, color: "text-orange-600" },
   { id: "outdoor", label: "Outdoor", icon: TreePine, color: "text-emerald-600" },
@@ -68,7 +69,7 @@ interface ActivityRecommendation {
 
 export default function Activities() {
   const [, setLocation] = useLocation();
-  const [activeCategory, setActiveCategory] = useState("near_me");
+  const [activeCategory, setActiveCategory] = useState("recommended");
   const [activeDrinkTab, setActiveDrinkTab] = useState("coffee");
   const [userLocation, setUserLocation] = useState<{latitude: number, longitude: number} | null>(null);
   const [locationName, setLocationName] = useState<string>("");
@@ -356,6 +357,29 @@ export default function Activities() {
         )}
       </div>
       
+      {/* Activity Categories */}
+      <div className="flex space-x-2 mb-6 overflow-x-auto pb-2">
+        {activityCategories.map((category) => {
+          const IconComponent = category.icon;
+          return (
+            <Button
+              key={category.id}
+              variant={activeCategory === category.id ? "default" : "outline"}
+              size="sm"
+              onClick={() => handleCategoryChange(category.id)}
+              className={`px-4 py-2 rounded-full text-sm whitespace-nowrap flex items-center ${
+                activeCategory === category.id 
+                  ? "bg-primary text-white shadow-lg" 
+                  : "bg-secondary/50 text-muted-foreground hover:bg-secondary"
+              }`}
+            >
+              <IconComponent className={`w-4 h-4 mr-2 ${category.color}`} />
+              {category.label}
+            </Button>
+          );
+        })}
+      </div>
+
       {/* Drink Preference Tabs (only shown when drinks category is active) */}
       {activeCategory === "drinks" && (
         <div className="flex space-x-2 mb-6 overflow-x-auto pb-2">
@@ -454,7 +478,7 @@ export default function Activities() {
                         </div>
                       </div>
                       
-                      {activity.specialties && Array.isArray(activity.specialties) && activity.specialties.length > 0 && (
+                      {activity.specialties && activity.specialties.length > 0 && (
                         <div className="flex flex-wrap gap-1 mb-3">
                           {activity.specialties.map((specialty, idx) => (
                             <Badge key={idx} variant="secondary" className="text-xs py-0 px-2">
