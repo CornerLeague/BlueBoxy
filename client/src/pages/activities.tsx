@@ -283,13 +283,13 @@ export default function Activities() {
   const hasLocationPreferences = userLocation && (user as any)?.preferences;
 
   return (
-    <div className="p-6 min-h-screen pb-24">
-      <div className="flex items-center mb-6">
-        <h2 className="text-xl font-semibold">Date Activities</h2>
+    <div className="p-4 sm:p-6 min-h-screen pb-24">
+      <div className="flex items-center mb-4 sm:mb-6">
+        <h2 className="text-lg sm:text-xl font-semibold">Date Activities</h2>
       </div>
       
       {/* Location Status & Controls */}
-      <div className="glass-card rounded-2xl p-4 mb-6">
+      <div className="glass-card rounded-2xl p-3 sm:p-4 mb-4 sm:mb-6">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center min-w-0 flex-1 mr-2">
             <div className="w-8 h-8 bg-gradient-to-br from-primary to-blue-500 rounded-full flex items-center justify-center mr-3 shadow-lg flex-shrink-0">
@@ -358,7 +358,7 @@ export default function Activities() {
       </div>
       
       {/* Activity Categories */}
-      <div className="flex space-x-2 mb-6 overflow-x-auto pb-2">
+      <div className="flex space-x-2 mb-6 overflow-x-auto pb-2 scrollbar-hide">
         {activityCategories.map((category) => {
           const IconComponent = category.icon;
           return (
@@ -367,14 +367,15 @@ export default function Activities() {
               variant={activeCategory === category.id ? "default" : "outline"}
               size="sm"
               onClick={() => handleCategoryChange(category.id)}
-              className={`px-4 py-2 rounded-full text-sm whitespace-nowrap flex items-center ${
+              className={`px-3 sm:px-4 py-2 rounded-full text-xs sm:text-sm whitespace-nowrap flex items-center flex-shrink-0 ${
                 activeCategory === category.id 
                   ? "bg-primary text-white shadow-lg" 
                   : "bg-secondary/50 text-muted-foreground hover:bg-secondary"
               }`}
             >
-              <IconComponent className={`w-4 h-4 mr-2 ${category.color}`} />
-              {category.label}
+              <IconComponent className={`w-3 sm:w-4 h-3 sm:h-4 mr-1 sm:mr-2 ${category.color}`} />
+              <span className="hidden sm:inline">{category.label}</span>
+              <span className="sm:hidden">{category.label.substring(0, 3)}</span>
             </Button>
           );
         })}
@@ -407,12 +408,12 @@ export default function Activities() {
       
       {/* Generation Controls */}
       {userLocation && (
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex space-x-3">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 space-y-3 sm:space-y-0">
+          <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3">
             <Button 
               onClick={() => handleGetRecommendations(true)}
               disabled={isGenerating}
-              className="bg-gradient-to-r from-primary to-blue-400 text-white shadow-lg"
+              className="bg-gradient-to-r from-primary to-blue-400 text-white shadow-lg text-sm px-4 py-2"
             >
               {isGenerating ? (
                 <>
@@ -432,15 +433,17 @@ export default function Activities() {
                 variant="outline"
                 onClick={handleGenerateMore}
                 disabled={isGenerating}
+                className="text-sm px-4 py-2"
               >
                 <RefreshCw className="w-4 h-4 mr-2" />
-                Generate More ({generationsRemaining} left)
+                <span className="hidden sm:inline">Generate More ({generationsRemaining} left)</span>
+                <span className="sm:hidden">More ({generationsRemaining})</span>
               </Button>
             )}
           </div>
           
           {getCurrentRecommendations().length > 0 && (
-            <Badge variant="secondary" className="text-xs">
+            <Badge variant="secondary" className="text-xs self-start sm:self-auto">
               {getCurrentRecommendations().length} recommendations
             </Badge>
           )}
@@ -455,11 +458,11 @@ export default function Activities() {
             return (
               <Card key={activity.id} className="glass-card hover:shadow-xl transition-all duration-300 border-l-4 border-l-primary">
                 <CardContent className="p-5">
-                  <div className="flex justify-between items-start mb-3">
+                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start mb-3">
                     <div className="flex-1">
                       <h3 className="font-semibold text-lg text-foreground mb-1">{activity.name}</h3>
                       
-                      <div className="flex items-center space-x-4 mb-3">
+                      <div className="grid grid-cols-2 sm:flex sm:items-center sm:space-x-4 gap-2 sm:gap-0 mb-3">
                         <div className="flex items-center">
                           <Star className="w-4 h-4 text-yellow-500 mr-1" />
                           <span className="text-sm font-medium">{activity.rating}</span>
@@ -478,10 +481,10 @@ export default function Activities() {
                         </div>
                       </div>
                       
-                      {activity.specialties && activity.specialties.length > 0 && (
+                      {Array.isArray(activity.specialties) && activity.specialties.length > 0 && (
                         <div className="flex flex-wrap gap-1 mb-3">
                           {activity.specialties.map((specialty, idx) => (
-                            <Badge key={idx} variant="secondary" className="text-xs py-0 px-2">
+                            <Badge key={`${activity.id}-specialty-${idx}`} variant="secondary" className="text-xs py-0 px-2">
                               {specialty}
                             </Badge>
                           ))}
@@ -512,11 +515,11 @@ export default function Activities() {
                       )}
                     </div>
                     
-                    <div className="flex flex-col space-y-2 ml-4">
+                    <div className="flex flex-row sm:flex-col space-x-2 sm:space-x-0 sm:space-y-2 mt-3 sm:mt-0 sm:ml-4">
                       <Button
                         size="sm"
                         onClick={() => handleScheduleActivity(activity.name)}
-                        className="bg-gradient-to-r from-green-500 to-emerald-500 text-white text-xs px-3 py-1"
+                        className="bg-gradient-to-r from-green-500 to-emerald-500 text-white text-xs px-3 py-1 flex-1 sm:flex-none"
                       >
                         Schedule
                       </Button>
