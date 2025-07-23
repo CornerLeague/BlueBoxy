@@ -39,58 +39,29 @@ export default function Login() {
       return response.json();
     },
     onSuccess: (data) => {
-      localStorage.setItem("userId", data.user.id.toString());
-      localStorage.setItem("isAuthenticated", "true");
-      localStorage.setItem("userData", JSON.stringify(data.user));
-      
-      // Check if there are guest assessment results to save
-      const guestResults = localStorage.getItem("guestAssessmentResults");
-      if (guestResults) {
-        const results = JSON.parse(guestResults);
+      try {
+        localStorage.setItem("userId", data.user.id.toString());
+        localStorage.setItem("isAuthenticated", "true");
+        localStorage.setItem("userData", JSON.stringify(data.user));
         
-        // Update user profile with onboarding data if available
-        if (results.onboardingData) {
-          apiRequest("PUT", "/api/user/profile", {
-            name: results.onboardingData.name,
-            partnerName: results.onboardingData.partnerName,
-            relationshipDuration: results.onboardingData.relationshipDuration
-          }).catch(() => {
-            // Silent fail for profile update
-          });
-        }
-        
-        // Save guest assessment results to the user's account
-        apiRequest("POST", "/api/assessment/responses", {
-          userId: data.user.id,
-          responses: results.responses,
-          personalityType: results.personalityType
-        }).then(() => {
-          localStorage.removeItem("guestAssessmentResults");
-          localStorage.removeItem("onboardingData");
-          toast({
-            title: "Welcome back!",
-            description: "Your assessment results have been saved to your account.",
-          });
-          setLocation("/dashboard");
-        }).catch(() => {
-          toast({
-            title: "Welcome back!",
-            description: "Successfully logged in. You can retake the assessment if needed.",
-          });
-          setLocation("/dashboard");
-        });
-      } else {
         toast({
           title: "Welcome back!",
           description: "Successfully logged into your account.",
         });
         
-        // Navigate based on assessment completion - check if user has personalityType
+        // Navigate based on assessment completion
         if (data.user.personalityType) {
           setLocation("/dashboard");
         } else {
           setLocation("/assessment");
         }
+      } catch (error) {
+        console.error("Login success handler error:", error);
+        toast({
+          title: "Login Error",
+          description: "There was an issue processing your login. Please try again.",
+          variant: "destructive",
+        });
       }
     },
     onError: (error: any) => {
