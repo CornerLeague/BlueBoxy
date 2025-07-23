@@ -147,11 +147,6 @@ export default function Activities() {
       // Get readable location name
       const locationName = await reverseGeocode(location.latitude, location.longitude);
       setLocationName(locationName);
-      
-      toast({
-        title: "Location detected",
-        description: `Found your location: ${locationName}`,
-      });
 
     } catch (error) {
       setLocationPermissionStatus("denied");
