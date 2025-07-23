@@ -23,10 +23,22 @@ import {
   Clock,
   DollarSign,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  Calendar,
+  X
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 
 // Activity categories with specialized icons and colors
 const activityCategories = [
@@ -81,6 +93,15 @@ export default function Activities() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [locationPermissionStatus, setLocationPermissionStatus] = useState<"granted" | "denied" | "prompt">("prompt");
   const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set());
+  
+  // Scheduling modal state
+  const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
+  const [selectedActivity, setSelectedActivity] = useState<ActivityRecommendation | null>(null);
+  const [schedulingData, setSchedulingData] = useState({
+    date: '',
+    time: '',
+    notes: ''
+  });
   
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -248,11 +269,61 @@ export default function Activities() {
     handleGetRecommendations(false);
   };
 
-  const handleScheduleActivity = (activityName: string) => {
-    toast({
-      title: "Activity scheduled!",
-      description: `Added "${activityName}" to your calendar.`,
-    });
+  // Schedule event mutation
+  const scheduleEventMutation = useMutation({
+    mutationFn: async (eventData: any) => {
+      return await apiRequest("/api/events", "POST", eventData);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/events/user", userId] });
+      queryClient.invalidateQueries({ queryKey: ["/api/user/stats", userId] });
+      toast({
+        title: "Event Scheduled!",
+        description: "Your date has been added to the calendar and will appear in the Events tab.",
+        variant: "default",
+      });
+      setIsScheduleModalOpen(false);
+      setSchedulingData({ date: '', time: '', notes: '' });
+      setSelectedActivity(null);
+    },
+    onError: (error) => {
+      toast({
+        title: "Failed to schedule event",
+        description: "Please try again later.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Handle activity scheduling - opens modal
+  const handleScheduleActivity = (activity: ActivityRecommendation) => {
+    setSelectedActivity(activity);
+    setIsScheduleModalOpen(true);
+  };
+
+  // Handle schedule submission
+  const handleScheduleSubmit = () => {
+    if (!selectedActivity || !schedulingData.date || !schedulingData.time) {
+      toast({
+        title: "Missing Information",
+        description: "Please select both date and time for the event.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const eventData = {
+      userId: parseInt(userId!),
+      title: selectedActivity.name,
+      description: `${selectedActivity.description}\n\nLocation: ${selectedActivity.address}\nEstimated Cost: ${selectedActivity.estimatedCost}\nRecommended Time: ${selectedActivity.recommendedTime}${schedulingData.notes ? `\n\nNotes: ${schedulingData.notes}` : ''}`,
+      date: schedulingData.date,
+      time: schedulingData.time,
+      location: selectedActivity.address,
+      eventType: 'date',
+      category: selectedActivity.category
+    };
+
+    scheduleEventMutation.mutate(eventData);
   };
 
   const toggleCardExpansion = (cardId: string) => {
@@ -514,7 +585,7 @@ export default function Activities() {
                     <div className="flex flex-row sm:flex-col space-x-2 sm:space-x-0 sm:space-y-2 mt-3 sm:mt-0 sm:ml-2 flex-shrink-0 w-auto sm:w-auto max-w-[120px] sm:max-w-none">
                       <Button
                         size="sm"
-                        onClick={() => handleScheduleActivity(activity.name)}
+                        onClick={() => handleScheduleActivity(activity)}
                         className="bg-gradient-to-r from-green-500 to-emerald-500 text-white text-xs px-2 sm:px-3 py-1 flex-1 sm:flex-none whitespace-nowrap min-w-0"
                       >
                         Schedule
@@ -570,6 +641,93 @@ export default function Activities() {
           </p>
         </div>
       )}
+
+      {/* Schedule Activity Modal */}
+      <Dialog open={isScheduleModalOpen} onOpenChange={setIsScheduleModalOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center">
+              <Calendar className="w-5 h-5 mr-2 text-primary" />
+              Schedule {selectedActivity?.name}
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="date">Date</Label>
+              <Input
+                id="date"
+                type="date"
+                value={schedulingData.date}
+                onChange={(e) => setSchedulingData(prev => ({ ...prev, date: e.target.value }))}
+                min={new Date().toISOString().split('T')[0]}
+                className="glass-card"
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="time">Time</Label>
+              <Input
+                id="time"
+                type="time"
+                value={schedulingData.time}
+                onChange={(e) => setSchedulingData(prev => ({ ...prev, time: e.target.value }))}
+                className="glass-card"
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="notes">Notes (Optional)</Label>
+              <Textarea
+                id="notes"
+                placeholder="Add any special notes for this date..."
+                value={schedulingData.notes}
+                onChange={(e) => setSchedulingData(prev => ({ ...prev, notes: e.target.value }))}
+                className="glass-card resize-none"
+                rows={3}
+              />
+            </div>
+            
+            {selectedActivity && (
+              <div className="glass-card p-3 rounded-lg">
+                <h4 className="font-medium text-sm mb-2">Event Details</h4>
+                <div className="space-y-1 text-xs text-muted-foreground">
+                  <p><strong>Location:</strong> {selectedActivity.address}</p>
+                  <p><strong>Estimated Cost:</strong> {selectedActivity.estimatedCost}</p>
+                  <p><strong>Recommended Duration:</strong> {selectedActivity.recommendedTime}</p>
+                </div>
+              </div>
+            )}
+          </div>
+          
+          <div className="flex justify-end space-x-2">
+            <Button
+              variant="outline"
+              onClick={() => setIsScheduleModalOpen(false)}
+              disabled={scheduleEventMutation.isPending}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleScheduleSubmit}
+              disabled={scheduleEventMutation.isPending || !schedulingData.date || !schedulingData.time}
+              className="bg-gradient-to-r from-green-500 to-emerald-500 text-white"
+            >
+              {scheduleEventMutation.isPending ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Scheduling...
+                </>
+              ) : (
+                <>
+                  <Calendar className="w-4 h-4 mr-2" />
+                  Schedule Event
+                </>
+              )}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
