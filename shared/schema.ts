@@ -18,8 +18,8 @@ export const users = pgTable("users", {
 });
 
 export const partners = pgTable("partners", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   name: varchar("name", { length: 100 }).notNull(),
   nickname: varchar("nickname", { length: 50 }),
   dateOfBirth: date("date_of_birth"),
@@ -49,8 +49,8 @@ export const assessmentResponses = pgTable("assessment_responses", {
 
 
 export const notifications = pgTable("notifications", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   type: varchar("type", { length: 50 }).notNull(),
   title: varchar("title", { length: 200 }).notNull(),
   message: text("message").notNull(),
@@ -66,9 +66,8 @@ export const notifications = pgTable("notifications", {
 });
 
 export const calendarEvents = pgTable("calendar_events", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
-  partnerId: uuid("partner_id").references(() => partners.id, { onDelete: "cascade" }),
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   title: varchar("title", { length: 200 }).notNull(),
   description: text("description"),
   location: text("location"),
@@ -147,21 +146,7 @@ export const insertUserStatsSchema = createInsertSchema(userStats).omit({
   updatedAt: true,
 });
 
-export type User = typeof users.$inferSelect;
-export type InsertUser = typeof users.$inferInsert;
-export type Partner = typeof partners.$inferSelect;
-export type InsertPartner = typeof partners.$inferInsert;
-export type AssessmentResponse = typeof assessmentResponses.$inferSelect;
-export type InsertAssessmentResponse = typeof assessmentResponses.$inferInsert;
 
-export type Notification = typeof notifications.$inferSelect;
-export type InsertNotification = typeof notifications.$inferInsert;
-export type CalendarEvent = typeof calendarEvents.$inferSelect;
-export type InsertCalendarEvent = typeof calendarEvents.$inferInsert;
-export type Activity = typeof activities.$inferSelect;
-export type InsertActivity = typeof activities.$inferInsert;
-export type UserStats = typeof userStats.$inferSelect;
-export type InsertUserStats = typeof userStats.$inferInsert;
 
 // Relations
 export const usersRelations = relations(users, ({ one, many }) => ({
@@ -213,10 +198,6 @@ export const calendarEventsRelations = relations(calendarEvents, ({ one }) => ({
     fields: [calendarEvents.userId],
     references: [users.id],
   }),
-  partner: one(partners, {
-    fields: [calendarEvents.partnerId],
-    references: [partners.id],
-  }),
 }));
 
 // Types
@@ -226,8 +207,7 @@ export type Partner = typeof partners.$inferSelect;
 export type InsertPartner = z.infer<typeof insertPartnerSchema>;
 export type AssessmentResponse = typeof assessmentResponses.$inferSelect;
 export type InsertAssessmentResponse = z.infer<typeof insertAssessmentResponseSchema>;
-export type Recommendation = typeof recommendations.$inferSelect;
-export type InsertRecommendation = z.infer<typeof insertRecommendationSchema>;
+
 export type Notification = typeof notifications.$inferSelect;
 export type InsertNotification = z.infer<typeof insertNotificationSchema>;
 export type CalendarEvent = typeof calendarEvents.$inferSelect;

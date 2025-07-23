@@ -273,7 +273,7 @@ export default function Activities() {
   // Schedule event mutation
   const scheduleEventMutation = useMutation({
     mutationFn: async (eventData: any) => {
-      return await apiRequest("/api/events", "POST", eventData);
+      return await apiRequest("POST", "/api/events", eventData);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/events/user", userId] });
