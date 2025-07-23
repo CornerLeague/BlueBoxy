@@ -21,7 +21,9 @@ import {
   Wine,
   Sparkles,
   Clock,
-  DollarSign
+  DollarSign,
+  ChevronDown,
+  ChevronUp
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
@@ -78,6 +80,7 @@ export default function Activities() {
   const [generationsRemaining, setGenerationsRemaining] = useState(2);
   const [isGenerating, setIsGenerating] = useState(false);
   const [locationPermissionStatus, setLocationPermissionStatus] = useState<"granted" | "denied" | "prompt">("prompt");
+  const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set());
   
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -250,6 +253,16 @@ export default function Activities() {
       title: "Activity scheduled!",
       description: `Added "${activityName}" to your calendar.`,
     });
+  };
+
+  const toggleCardExpansion = (cardId: string) => {
+    const newExpanded = new Set(expandedCards);
+    if (newExpanded.has(cardId)) {
+      newExpanded.delete(cardId);
+    } else {
+      newExpanded.add(cardId);
+    }
+    setExpandedCards(newExpanded);
   };
 
   const handleCategoryChange = (categoryId: string) => {
@@ -437,81 +450,100 @@ export default function Activities() {
       {/* Recommendations Display */}
       {getCurrentRecommendations().length > 0 && (
         <div className="space-y-4">
-          {getCurrentRecommendations().map((activity, index) => (
-            <Card key={activity.id} className="glass-card hover:shadow-xl transition-all duration-300 border-l-4 border-l-primary">
-              <CardContent className="p-5">
-                <div className="flex justify-between items-start mb-3">
-                  <div className="flex-1">
-                    <h3 className="font-semibold text-lg text-foreground mb-1">{activity.name}</h3>
-                    <p className="text-sm text-muted-foreground mb-2">{activity.description}</p>
-                    
-                    <div className="flex items-center space-x-4 mb-3">
-                      <div className="flex items-center">
-                        <Star className="w-4 h-4 text-yellow-500 mr-1" />
-                        <span className="text-sm font-medium">{activity.rating}</span>
+          {getCurrentRecommendations().map((activity, index) => {
+            const isExpanded = expandedCards.has(activity.id);
+            return (
+              <Card key={activity.id} className="glass-card hover:shadow-xl transition-all duration-300 border-l-4 border-l-primary">
+                <CardContent className="p-5">
+                  <div className="flex justify-between items-start mb-3">
+                    <div className="flex-1">
+                      <h3 className="font-semibold text-lg text-foreground mb-1">{activity.name}</h3>
+                      
+                      <div className="flex items-center space-x-4 mb-3">
+                        <div className="flex items-center">
+                          <Star className="w-4 h-4 text-yellow-500 mr-1" />
+                          <span className="text-sm font-medium">{activity.rating}</span>
+                        </div>
+                        <div className="flex items-center">
+                          <MapPin className="w-4 h-4 text-blue-500 mr-1" />
+                          <span className="text-sm">{activity.distance} miles</span>
+                        </div>
+                        <div className="flex items-center">
+                          <DollarSign className="w-4 h-4 text-green-500 mr-1" />
+                          <span className="text-sm">{activity.estimatedCost}</span>
+                        </div>
+                        <div className="flex items-center">
+                          <Clock className="w-4 h-4 text-purple-500 mr-1" />
+                          <span className="text-sm">{activity.recommendedTime}</span>
+                        </div>
                       </div>
-                      <div className="flex items-center">
-                        <MapPin className="w-4 h-4 text-blue-500 mr-1" />
-                        <span className="text-sm">{activity.distance} miles</span>
-                      </div>
-                      <div className="flex items-center">
-                        <DollarSign className="w-4 h-4 text-green-500 mr-1" />
-                        <span className="text-sm">{activity.estimatedCost}</span>
-                      </div>
-                      <div className="flex items-center">
-                        <Clock className="w-4 h-4 text-purple-500 mr-1" />
-                        <span className="text-sm">{activity.recommendedTime}</span>
-                      </div>
+                      
+                      {activity.specialties && activity.specialties.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mb-3">
+                          {activity.specialties.map((specialty, idx) => (
+                            <Badge key={idx} variant="secondary" className="text-xs py-0 px-2">
+                              {specialty}
+                            </Badge>
+                          ))}
+                        </div>
+                      )}
+                      
+                      {/* See Details Toggle */}
+                      <button
+                        onClick={() => toggleCardExpansion(activity.id)}
+                        className="flex items-center text-sm text-primary hover:text-primary/80 transition-colors mb-2"
+                      >
+                        <span className="mr-1">See Details</span>
+                        {isExpanded ? (
+                          <ChevronUp className="w-4 h-4" />
+                        ) : (
+                          <ChevronDown className="w-4 h-4" />
+                        )}
+                      </button>
+                      
+                      {/* Collapsible Details */}
+                      {isExpanded && (
+                        <div className="text-xs text-muted-foreground mb-2 space-y-1 animate-in slide-in-from-top-2 duration-200">
+                          <p className="text-sm text-muted-foreground mb-2">{activity.description}</p>
+                          <p><strong>Address:</strong> {activity.address}</p>
+                          {activity.atmosphere && <p><strong>Atmosphere:</strong> {activity.atmosphere}</p>}
+                          <p><strong>Why it's perfect:</strong> {activity.personalityMatch}</p>
+                        </div>
+                      )}
                     </div>
                     
-                    {activity.specialties && activity.specialties.length > 0 && (
-                      <div className="flex flex-wrap gap-1 mb-3">
-                        {activity.specialties.map((specialty, idx) => (
-                          <Badge key={idx} variant="secondary" className="text-xs py-0 px-2">
-                            {specialty}
-                          </Badge>
-                        ))}
-                      </div>
-                    )}
-                    
-                    <div className="text-xs text-muted-foreground mb-2">
-                      <p><strong>Address:</strong> {activity.address}</p>
-                      {activity.atmosphere && <p><strong>Atmosphere:</strong> {activity.atmosphere}</p>}
-                      <p><strong>Why it's perfect:</strong> {activity.personalityMatch}</p>
+                    <div className="flex flex-col space-y-2 ml-4">
+                      <Button
+                        size="sm"
+                        onClick={() => handleScheduleActivity(activity.name)}
+                        className="bg-gradient-to-r from-green-500 to-emerald-500 text-white text-xs px-3 py-1"
+                      >
+                        Schedule
+                      </Button>
+                      {activity.website && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => window.open(activity.website, '_blank')}
+                          className="text-xs px-3 py-1"
+                        >
+                          <ExternalLink className="w-3 h-3" />
+                        </Button>
+                      )}
                     </div>
                   </div>
                   
-                  <div className="flex flex-col space-y-2 ml-4">
-                    <Button
-                      size="sm"
-                      onClick={() => handleScheduleActivity(activity.name)}
-                      className="bg-gradient-to-r from-green-500 to-emerald-500 text-white text-xs px-3 py-1"
-                    >
-                      Schedule
-                    </Button>
-                    {activity.website && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => window.open(activity.website, '_blank')}
-                        className="text-xs px-3 py-1"
-                      >
-                        <ExternalLink className="w-3 h-3" />
-                      </Button>
-                    )}
-                  </div>
-                </div>
-                
-                {index === 0 && (
-                  <div className="bg-primary/10 rounded-lg p-2 mt-3">
-                    <p className="text-xs text-primary font-medium">
-                      🎯 Local recommendation - This is a nearby gem perfect for you!
-                    </p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          ))}
+                  {index === 0 && (
+                    <div className="bg-primary/10 rounded-lg p-2 mt-3">
+                      <p className="text-xs text-primary font-medium">
+                        🎯 Local recommendation - This is a nearby gem perfect for you!
+                      </p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
       )}
       
