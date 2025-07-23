@@ -70,6 +70,7 @@ export default function Activities() {
   const [activeCategory, setActiveCategory] = useState("recommended");
   const [activeDrinkTab, setActiveDrinkTab] = useState("coffee");
   const [userLocation, setUserLocation] = useState<{latitude: number, longitude: number} | null>(null);
+  const [locationName, setLocationName] = useState<string>("");
   const [radius, setRadius] = useState([25]);
   const [recommendations, setRecommendations] = useState<ActivityRecommendation[]>([]);
   const [drinkRecommendations, setDrinkRecommendations] = useState<{[key: string]: ActivityRecommendation[]}>({});
@@ -92,6 +93,29 @@ export default function Activities() {
   useEffect(() => {
     detectLocation();
   }, []);
+
+  // Reverse geocode coordinates to get city and state
+  const reverseGeocode = async (lat: number, lng: number): Promise<string> => {
+    try {
+      const response = await fetch(
+        `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lng}&localityLanguage=en`
+      );
+      const data = await response.json();
+      
+      if (data.city && data.principalSubdivision) {
+        return `${data.city}, ${data.principalSubdivision}`;
+      } else if (data.locality && data.principalSubdivision) {
+        return `${data.locality}, ${data.principalSubdivision}`;
+      } else if (data.principalSubdivision) {
+        return data.principalSubdivision;
+      } else {
+        return `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+      }
+    } catch (error) {
+      console.error("Reverse geocoding failed:", error);
+      return `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+    }
+  };
 
   const detectLocation = async () => {
     if (!navigator.geolocation) {
@@ -120,9 +144,13 @@ export default function Activities() {
       setUserLocation(location);
       setLocationPermissionStatus("granted");
       
+      // Get readable location name
+      const locationName = await reverseGeocode(location.latitude, location.longitude);
+      setLocationName(locationName);
+      
       toast({
         title: "Location detected",
-        description: `Found your location: ${location.latitude.toFixed(4)}, ${location.longitude.toFixed(4)}`,
+        description: `Found your location: ${locationName}`,
       });
 
     } catch (error) {
@@ -262,9 +290,9 @@ export default function Activities() {
               <h3 className="font-semibold text-sm">
                 {userLocation ? "Location-Based Recommendations" : "Setup Location"}
               </h3>
-              {userLocation && (
+              {userLocation && locationName && (
                 <p className="text-xs text-muted-foreground">
-                  {userLocation.latitude.toFixed(4)}, {userLocation.longitude.toFixed(4)}
+                  {locationName}
                 </p>
               )}
             </div>
