@@ -34,6 +34,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -287,9 +288,10 @@ export default function Activities() {
       setSelectedActivity(null);
     },
     onError: (error) => {
+      console.error("Event creation error:", error);
       toast({
         title: "Failed to schedule event",
-        description: "Please try again later.",
+        description: error?.message || "Please try again later.",
         variant: "destructive",
       });
     },
@@ -312,15 +314,19 @@ export default function Activities() {
       return;
     }
 
+    // Create combined datetime for startTime and endTime
+    const startDateTime = new Date(`${schedulingData.date}T${schedulingData.time}`);
+    const endDateTime = new Date(startDateTime.getTime() + 2 * 60 * 60 * 1000); // Add 2 hours default duration
+
     const eventData = {
       userId: parseInt(userId!),
       title: selectedActivity.name,
       description: `${selectedActivity.description}\n\nLocation: ${selectedActivity.address}\nEstimated Cost: ${selectedActivity.estimatedCost}\nRecommended Time: ${selectedActivity.recommendedTime}${schedulingData.notes ? `\n\nNotes: ${schedulingData.notes}` : ''}`,
-      date: schedulingData.date,
-      time: schedulingData.time,
       location: selectedActivity.address,
+      startTime: startDateTime.toISOString(),
+      endTime: endDateTime.toISOString(),
       eventType: 'date',
-      category: selectedActivity.category
+      allDay: false
     };
 
     scheduleEventMutation.mutate(eventData);
@@ -650,6 +656,9 @@ export default function Activities() {
               <Calendar className="w-5 h-5 mr-2 text-primary" />
               Schedule {selectedActivity?.name}
             </DialogTitle>
+            <DialogDescription>
+              Choose a date and time for your planned activity. This will be added to your calendar and Events tab.
+            </DialogDescription>
           </DialogHeader>
           
           <div className="space-y-4 py-4">
