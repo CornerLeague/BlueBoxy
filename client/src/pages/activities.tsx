@@ -451,8 +451,7 @@ export default function Activities() {
               }`}
             >
               <IconComponent className={`w-3 sm:w-4 h-3 sm:h-4 mr-1 sm:mr-2 ${category.color}`} />
-              <span className="hidden sm:inline">{category.label}</span>
-              <span className="sm:hidden">{category.label.substring(0, 3)}</span>
+              {category.label}
             </Button>
           );
         })}
