@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Copy, Heart, MessageSquare, Share2, Sparkles, Wand2, Loader2 } from "lucide-react";
@@ -38,6 +38,28 @@ export default function Messages() {
   const queryClient = useQueryClient();
   const userId = localStorage.getItem("userId");
 
+  // Load persisted messages from localStorage on mount
+  useEffect(() => {
+    const savedMessages = localStorage.getItem("generatedMessages");
+    const savedContext = localStorage.getItem("generationContext");
+    
+    if (savedMessages) {
+      try {
+        setGeneratedMessages(JSON.parse(savedMessages));
+      } catch (error) {
+        console.error("Error loading saved messages:", error);
+      }
+    }
+    
+    if (savedContext) {
+      try {
+        setGenerationContext(JSON.parse(savedContext));
+      } catch (error) {
+        console.error("Error loading saved context:", error);
+      }
+    }
+  }, []);
+
   // Fetch message categories from API
   const { data: categoriesResponse } = useQuery({
     queryKey: ["/api/messages/categories"],
@@ -68,6 +90,11 @@ export default function Messages() {
       if (data.success) {
         setGeneratedMessages(data.messages);
         setGenerationContext(data.context);
+        
+        // Persist to localStorage
+        localStorage.setItem("generatedMessages", JSON.stringify(data.messages));
+        localStorage.setItem("generationContext", JSON.stringify(data.context));
+        
         toast({
           title: "Messages Generated!",
           description: `Created ${data.messages.length} personalized messages for you.`,
@@ -75,6 +102,11 @@ export default function Messages() {
       } else {
         setGeneratedMessages([]);
         setGenerationContext(null);
+        
+        // Clear from localStorage on failure
+        localStorage.removeItem("generatedMessages");
+        localStorage.removeItem("generationContext");
+        
         toast({
           title: "Generation Failed",
           description: data.error || "Sorry, I was unable to give you a message at this time.",
