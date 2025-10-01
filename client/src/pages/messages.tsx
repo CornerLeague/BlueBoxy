@@ -73,7 +73,13 @@ export default function Messages() {
           description: `Created ${data.messages.length} personalized messages for you.`,
         });
       } else {
-        throw new Error(data.error || "Failed to generate messages");
+        setGeneratedMessages([]);
+        setGenerationContext(null);
+        toast({
+          title: "Generation Failed",
+          description: data.error || "Sorry, I was unable to give you a message at this time.",
+          variant: "destructive",
+        });
       }
     },
     onError: (error: any) => {

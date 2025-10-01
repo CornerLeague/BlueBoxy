@@ -163,7 +163,16 @@ Generate messages that integrate these frameworks naturally, making the partner 
 
   } catch (error) {
     console.error("Error generating messages:", error);
-    return generateFallbackMessages(request, user);
+    return {
+      success: false,
+      messages: [],
+      context: {
+        category: MESSAGE_CATEGORIES[request.category].label,
+        personalityType: user.personalityType || "Thoughtful Harmonizer",
+        partnerName: user.partnerName || "your partner"
+      },
+      error: "Sorry, I was unable to give you a message at this time."
+    };
   }
 }
 
@@ -302,83 +311,6 @@ function getCategoryGuidelines(category: keyof typeof MESSAGE_CATEGORIES): strin
 
     default:
       return "Create meaningful, personalized messages that strengthen your relationship using psychological principles.";
-  }
-}
-
-function generateFallbackMessages(
-  request: GenerateMessageRequest,
-  user: User
-): MessageGenerationResponse {
-  const category = MESSAGE_CATEGORIES[request.category];
-  const partnerName = user.partnerName || "your partner";
-  const fallbackMessages = getFallbackMessagesForCategory(request.category, partnerName);
-
-  return {
-    success: true,
-    messages: fallbackMessages.map((content, index) => ({
-      id: `${request.category}_fallback_${Date.now()}_${index}`,
-      content,
-      category: request.category,
-      personalityMatch: user.personalityType || "Thoughtful Harmonizer",
-      tone: "warm",
-      estimatedImpact: "medium" as const
-    })),
-    context: {
-      category: category.label,
-      personalityType: user.personalityType || "Thoughtful Harmonizer", 
-      partnerName: partnerName
-    }
-  };
-}
-
-function getFallbackMessagesForCategory(
-  category: keyof typeof MESSAGE_CATEGORIES,
-  partnerName: string
-): string[] {
-  const name = partnerName || "love";
-  
-  switch (category) {
-    case "daily_checkins":
-      return [
-        `Good morning ${name}! Hope you have a wonderful day ahead. 💕`,
-        `Hey ${name}, just wanted to check in and see how you're doing today.`,
-        `Thinking of you and hoping your day is going well, ${name}! ❤️`
-      ];
-
-    case "appreciation":
-      return [
-        `${name}, I'm so grateful to have you in my life. Thank you for being amazing.`,
-        `Just wanted to say how much I appreciate everything you do, ${name}. You're incredible! 💖`,
-        `${name}, you make my world brighter just by being in it. Thank you for being you.`
-      ];
-
-    case "support":
-      return [
-        `${name}, I believe in you and know you can handle anything that comes your way. 💪`,
-        `You've got this, ${name}! I'm here for you no matter what.`,
-        `${name}, you're stronger than you know. I'm proud of you and here to support you always. ❤️`
-      ];
-
-    case "romantic":
-      return [
-        `${name}, you mean the world to me. I love you more every day. 💕`,
-        `I can't imagine my life without you, ${name}. You're my everything. ❤️`,
-        `${name}, loving you is the best thing that ever happened to me. Forever yours. 💖`
-      ];
-
-    case "playful":
-      return [
-        `Hey ${name}, you're pretty awesome... I guess I'll keep you around! 😄`,
-        `${name}, you make me smile even on the toughest days. Thanks for being my sunshine! ☀️`,
-        `Just wanted to remind you that you're stuck with me, ${name}! Lucky you! 😉💕`
-      ];
-
-    default:
-      return [
-        `${name}, you're amazing and I'm lucky to have you. ❤️`,
-        `Hope you know how special you are to me, ${name}! 💕`,
-        `${name}, you make everything better just by being you. 💖`
-      ];
   }
 }
 
