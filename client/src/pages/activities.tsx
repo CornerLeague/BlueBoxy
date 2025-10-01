@@ -642,7 +642,7 @@ export default function Activities() {
           <Sparkles className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
           <h3 className="text-lg font-semibold mb-2">Ready to Discover</h3>
           <p className="text-muted-foreground mb-4">
-            Click "Get Recommendations" to find amazing {activeCategory} activities near you within {radius[0]} miles.
+            Click "Get Recommendations" to find amazing {activeCategory === 'near_me' ? 'Near Me' : activeCategory} activities near you within {radius[0]} miles.
           </p>
         </div>
       )}
