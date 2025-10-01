@@ -1,9 +1,6 @@
 import OpenAI from "openai";
 import type { User } from "@shared/schema";
 
-// the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-
 // Message Categories
 export const MESSAGE_CATEGORIES = {
   daily_checkins: {
@@ -78,6 +75,9 @@ export async function generatePersonalizedMessages(
   user: User
 ): Promise<MessageGenerationResponse> {
   try {
+    // Initialize OpenAI client with current environment variable
+    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+    
     const category = MESSAGE_CATEGORIES[request.category];
     const personalityType = user.personalityType || "Thoughtful Harmonizer";
     const personalityTrait = PERSONALITY_TYPES[personalityType as keyof typeof PERSONALITY_TYPES];
