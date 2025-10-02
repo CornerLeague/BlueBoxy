@@ -106,25 +106,25 @@ export class GrokAIService {
     try {
       // Check if AI service is available
       if (!this.apiKey) {
-        return this.getFallbackRecommendations(category, location);
+        return this.getProcessedFallbackRecommendations(category, location, radius);
       }
       
       const prompt = this.buildActivityPrompt(category, location, radius, preferences, personalityType);
       const response = await this.callGrokAPI(prompt);
       const recommendations = this.parseActivityResponse(response, category, location);
-      
+
       // Update algorithm state
       this.algorithm.incrementGeneration(sessionKey);
-      
+
       return {
-        recommendations: this.sortByLocalAndRadius(recommendations, location, radius),
+        recommendations: this.prepareRecommendations(recommendations, category, radius),
         canGenerateMore: this.algorithm.canGenerateMore(sessionKey),
         generationsRemaining: this.algorithm.getGenerationsRemaining(sessionKey)
       };
-      
+
     } catch (error) {
       console.error('Grok AI error:', error);
-      return this.getFallbackRecommendations(category, location);
+      return this.getProcessedFallbackRecommendations(category, location, radius);
     }
   }
   
@@ -271,28 +271,131 @@ export class GrokAIService {
   ): ActivityRecommendation[] {
     try {
       const parsed = JSON.parse(response);
-      return Array.isArray(parsed) ? parsed : [parsed];
+
+      if (Array.isArray(parsed)) {
+        return parsed;
+      }
+
+      if (parsed && typeof parsed === 'object') {
+        if (Array.isArray(parsed.activities)) {
+          return parsed.activities;
+        }
+        if (Array.isArray(parsed.recommendations)) {
+          return parsed.recommendations;
+        }
+      }
+
+      return [parsed];
     } catch (error) {
       console.error('Failed to parse AI response:', error);
       return this.getFallbackRecommendations(category, location).recommendations;
     }
   }
-  
-  // Sort recommendations by local priority and radius
-  private sortByLocalAndRadius(
+
+  // Prepare recommendations ensuring uniqueness, radius filtering, and randomness
+  private prepareRecommendations(
     recommendations: ActivityRecommendation[],
-    location: Location,
+    category: string,
     radius: number
   ): ActivityRecommendation[] {
-    // Ensure first recommendation is local (within 2-3 miles)
-    const local = recommendations.filter(r => r.distance <= 3);
-    const withinRadius = recommendations.filter(r => r.distance > 3 && r.distance <= radius);
-    
-    // Sort by rating and distance
-    local.sort((a, b) => b.rating - a.rating);
-    withinRadius.sort((a, b) => b.rating - a.rating || a.distance - b.distance);
-    
-    return [...local.slice(0, 1), ...withinRadius.slice(0, 2)];
+    const normalized = recommendations
+      .map((recommendation, index) => {
+        const normalizedDistance = this.normalizeDistance(recommendation.distance);
+        const id = recommendation.id || `${category}_${recommendation.name?.replace(/\s+/g, '_') || 'item'}_${index}`;
+
+        return {
+          ...recommendation,
+          id,
+          distance: normalizedDistance
+        };
+      })
+      .filter((recommendation) => Boolean(recommendation.name));
+
+    const uniqueRecommendations = this.dedupeRecommendations(normalized);
+    const filtered = this.filterByRadius(uniqueRecommendations, category, radius);
+
+    const pool = filtered.length > 0 ? filtered : this.sortByDistanceAndRating(uniqueRecommendations);
+    const selectionCount = Math.min(3, pool.length);
+
+    return this.pickRandomRecommendations(pool, selectionCount);
+  }
+
+  private normalizeDistance(distance: any): number {
+    if (typeof distance === 'number' && !Number.isNaN(distance)) {
+      return distance;
+    }
+
+    if (typeof distance === 'string') {
+      const match = distance.match(/([0-9]+(?:\.[0-9]+)?)/);
+      if (match) {
+        const parsed = parseFloat(match[1]);
+        if (!Number.isNaN(parsed)) {
+          return parsed;
+        }
+      }
+    }
+
+    return Number.POSITIVE_INFINITY;
+  }
+
+  private dedupeRecommendations(recommendations: ActivityRecommendation[]): ActivityRecommendation[] {
+    const seen = new Set<string>();
+
+    return recommendations.filter((recommendation) => {
+      const key = `${recommendation.name?.toLowerCase().trim() || ''}|${recommendation.address?.toLowerCase().trim() || ''}`;
+
+      if (seen.has(key)) {
+        return false;
+      }
+
+      seen.add(key);
+      return true;
+    });
+  }
+
+  private filterByRadius(
+    recommendations: ActivityRecommendation[],
+    category: string,
+    radius: number
+  ): ActivityRecommendation[] {
+    const NEAR_ME_MAX_RADIUS = 5; // miles
+    const effectiveRadius = category === 'near_me' ? NEAR_ME_MAX_RADIUS : radius;
+
+    return recommendations.filter((recommendation) => recommendation.distance <= effectiveRadius);
+  }
+
+  private pickRandomRecommendations(
+    recommendations: ActivityRecommendation[],
+    count: number
+  ): ActivityRecommendation[] {
+    if (recommendations.length <= count) {
+      return [...recommendations];
+    }
+
+    const pool = [...recommendations];
+    const selected: ActivityRecommendation[] = [];
+
+    while (selected.length < count && pool.length > 0) {
+      const index = Math.floor(Math.random() * pool.length);
+      const [item] = pool.splice(index, 1);
+      selected.push(item);
+    }
+
+    return selected;
+  }
+
+  private sortByDistanceAndRating(
+    recommendations: ActivityRecommendation[]
+  ): ActivityRecommendation[] {
+    return [...recommendations].sort((a, b) => {
+      const distanceComparison = (a.distance ?? Number.POSITIVE_INFINITY) - (b.distance ?? Number.POSITIVE_INFINITY);
+
+      if (distanceComparison !== 0) {
+        return distanceComparison;
+      }
+
+      return (b.rating ?? 0) - (a.rating ?? 0);
+    });
   }
   
   // Fallback recommendations when AI is unavailable
@@ -355,7 +458,20 @@ export class GrokAIService {
       generationsRemaining: 0
     };
   }
-  
+
+  private getProcessedFallbackRecommendations(
+    category: string,
+    location: Location,
+    radius: number
+  ) {
+    const fallback = this.getFallbackRecommendations(category, location);
+
+    return {
+      ...fallback,
+      recommendations: this.prepareRecommendations(fallback.recommendations, category, radius)
+    };
+  }
+
   // Fallback drink recommendations
   private getFallbackDrinkRecommendations(
     drinkPreferences: string[],
