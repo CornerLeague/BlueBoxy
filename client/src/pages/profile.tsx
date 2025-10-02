@@ -33,8 +33,8 @@ export default function Profile() {
     return (
       <div className="p-6 min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <p className="text-muted-foreground">Please log in to view your profile.</p>
-          <Button onClick={() => setLocation("/onboarding")} className="mt-4">
+          <p className="text-muted-foreground">Please sign in to view your profile.</p>
+          <Button onClick={() => setLocation("/login")} className="mt-4">
             Go to Login
           </Button>
         </div>

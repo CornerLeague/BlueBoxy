@@ -210,11 +210,13 @@ export class CalendarProviderManager {
         const outlookEvents = await this.getOutlookCalendarEvents(userToken, startDate, endDate);
         events.push(...outlookEvents);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error(`Error fetching events from ${providerId}:`, error);
       // Update token with error
-      userToken.error = error.message;
-      this.userTokens.set(`${userId}:${providerId}`, userToken);
+      if (userToken) {
+        userToken.error = error.message;
+        this.userTokens.set(`${userId}:${providerId}`, userToken);
+      }
     }
 
     return events;

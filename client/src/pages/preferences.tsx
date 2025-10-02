@@ -72,7 +72,7 @@ export default function Preferences() {
     }
   };
 
-  const handleAnswer = (value: string | number | boolean) => {
+  const handleAnswer = (value: string | number | boolean | string[]) => {
     setResponses(prev => ({
       ...prev,
       [currentQuestion.id]: {

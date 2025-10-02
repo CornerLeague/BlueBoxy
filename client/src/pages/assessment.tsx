@@ -199,10 +199,12 @@ export default function Assessment() {
     });
     
     // Determine dominant trait
-    const maxTrait = Object.keys(traits).reduce((a, b) => traits[a] > traits[b] ? a : b);
+    type TraitKey = keyof typeof traits;
+    const keys = Object.keys(traits) as TraitKey[];
+    const maxTrait = keys.reduce((a: TraitKey, b: TraitKey) => (traits[a] > traits[b] ? a : b), keys[0]);
     
     // Map traits to personality types
-    const personalityMap = {
+    const personalityMap: Record<TraitKey, string> = {
       thoughtful: "Thoughtful Harmonizer",
       emotional: "Emotional Connector", 
       practical: "Practical Supporter",

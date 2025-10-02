@@ -1,5 +1,5 @@
 import { db } from "./db";
-import { users, activities, recommendations } from "@shared/schema";
+import { users, activities } from "@shared/schema";
 
 const sampleActivities = [
   {

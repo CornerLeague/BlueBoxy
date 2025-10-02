@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertUserSchema, insertAssessmentResponseSchema, insertScheduledEventSchema } from "@shared/schema";
+import { insertUserSchema, insertAssessmentResponseSchema, insertCalendarEventSchema } from "@shared/schema";
 import { z } from "zod";
 
 
@@ -47,14 +47,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const assessmentData = insertAssessmentResponseSchema.parse(req.body);
       const assessment = await storage.saveAssessmentResponse(assessmentData);
       
-      // Update user's assessment completion status
+      // Update user's personality type
       await storage.updateUser(assessmentData.userId!, {
-        assessmentCompleted: true,
-        personalityType: assessmentData.personalityType,
+        personalityType: assessmentData.personalityType || "Unknown",
       });
-
-      // Generate initial recommendations
-      await generateRecommendations(assessmentData.userId!, assessmentData.personalityType);
 
       res.status(201).json(assessment);
     } catch (error) {
@@ -72,12 +68,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Recommendations routes
+  // Recommendations routes (legacy - not implemented in current schema)
   app.get("/api/recommendations/user/:userId", async (req, res) => {
     try {
-      const userId = parseInt(req.params.userId);
-      const recommendations = await storage.getRecommendationsByUserId(userId);
-      res.json(recommendations);
+      res.json([]);
     } catch (error) {
       res.status(500).json({ message: "Failed to get recommendations" });
     }
@@ -105,7 +99,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/events/user/:userId", async (req, res) => {
     try {
       const userId = parseInt(req.params.userId);
-      const events = await storage.getEventsByUserId(userId);
+      const events = await storage.getUserEvents(userId);
       res.json(events);
     } catch (error) {
       res.status(500).json({ message: "Failed to get events" });
@@ -114,7 +108,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/events", async (req, res) => {
     try {
-      const eventData = insertScheduledEventSchema.parse(req.body);
+      const eventData = insertCalendarEventSchema.parse(req.body);
       const event = await storage.createEvent(eventData);
       res.status(201).json(event);
     } catch (error) {
@@ -124,10 +118,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.patch("/api/events/:id", async (req, res) => {
     try {
-      const id = parseInt(req.params.id);
-      const updates = req.body;
-      const event = await storage.updateEvent(id, updates);
-      res.json(event);
+      return res.status(501).json({ message: "Event updates not implemented" });
     } catch (error) {
       res.status(400).json({ message: "Failed to update event" });
     }
@@ -135,9 +126,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.delete("/api/events/:id", async (req, res) => {
     try {
-      const id = parseInt(req.params.id);
-      await storage.deleteEvent(id);
-      res.status(204).send();
+      return res.status(501).json({ message: "Event deletion not implemented" });
     } catch (error) {
       res.status(400).json({ message: "Failed to delete event" });
     }
@@ -147,39 +136,4 @@ export async function registerRoutes(app: Express): Promise<Server> {
   return httpServer;
 }
 
-// Recommendation engine
-async function generateRecommendations(userId: number, personalityType: string) {
-  const recommendations = [
-    {
-      userId,
-      type: "message",
-      category: "daily_checkin",
-      content: "Good morning beautiful! I know you have that big presentation today. You've got this - I believe in you completely! ☀️",
-      priority: "high",
-      personalityMatch: personalityType,
-      isActive: true,
-    },
-    {
-      userId,
-      type: "activity",
-      category: "date_idea",
-      content: "Cozy Garden Café - Perfect for meaningful conversations. Known for their artisanal coffee and peaceful atmosphere.",
-      priority: "medium",
-      personalityMatch: personalityType,
-      isActive: true,
-    },
-    {
-      userId,
-      type: "reminder",
-      category: "quality_time",
-      content: "Ask about her presentation today and really listen. She'll appreciate you remembering and caring about her day.",
-      priority: "high",
-      personalityMatch: personalityType,
-      isActive: true,
-    },
-  ];
-
-  for (const rec of recommendations) {
-    await storage.createRecommendation(rec);
-  }
-}
+// Recommendation engine (removed in current schema)

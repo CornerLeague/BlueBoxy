@@ -161,17 +161,18 @@ Generate messages that integrate these frameworks naturally, making the partner 
       }
     };
 
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error generating messages:", error);
+    // Do NOT provide generic messages. Return an error so the client can surface it.
     return {
       success: false,
       messages: [],
       context: {
         category: MESSAGE_CATEGORIES[request.category].label,
         personalityType: user.personalityType || "Thoughtful Harmonizer",
-        partnerName: user.partnerName || "your partner"
+        partnerName: user.partnerName || "your partner",
       },
-      error: "Sorry, I was unable to give you a message at this time."
+      error: error?.message || "Failed to generate messages. Please try again.",
     };
   }
 }

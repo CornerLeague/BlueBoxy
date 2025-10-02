@@ -7,6 +7,29 @@ async function throwIfResNotOk(res: Response) {
   }
 }
 
+function stripUserIdFromUrl(rawUrl: string): string {
+  try {
+    const u = new URL(rawUrl, window.location.origin);
+    u.searchParams.delete("userId");
+    return u.pathname + (u.search ? u.search : "");
+  } catch {
+    // If it's a relative path without origin, fallback to manual strip
+    const [path, qs] = rawUrl.split("?");
+    if (!qs) return rawUrl;
+    const params = new URLSearchParams(qs);
+    params.delete("userId");
+    const q = params.toString();
+    return q ? `${path}?${q}` : path;
+  }
+}
+
+function stripUserIdFromBody<T>(payload: T): T {
+  if (!payload || typeof payload !== "object") return payload;
+  const clone: any = Array.isArray(payload) ? [...(payload as any)] : { ...(payload as any) };
+  if ("userId" in clone) delete clone.userId;
+  return clone as T;
+}
+
 export async function apiRequest(
   method: string,
   url: string,
@@ -18,11 +41,18 @@ export async function apiRequest(
   if (token) {
     headers.Authorization = `Bearer ${token}`;
   }
+  const legacyId = localStorage.getItem("localUserId") || localStorage.getItem("userId");
+  if (legacyId) {
+    headers["X-User-Id"] = legacyId;
+  }
 
-  const res = await fetch(url, {
+  const sanitizedUrl = stripUserIdFromUrl(url);
+  const sanitizedBody = data ? stripUserIdFromBody(data) : undefined;
+
+  const res = await fetch(sanitizedUrl, {
     method,
     headers,
-    body: data ? JSON.stringify(data) : undefined,
+    body: sanitizedBody ? JSON.stringify(sanitizedBody) : undefined,
     credentials: "include",
   });
 
@@ -42,8 +72,13 @@ export const getQueryFn: <T>(options: {
     if (token) {
       headers.Authorization = `Bearer ${token}`;
     }
+    const legacyId = localStorage.getItem("localUserId") || localStorage.getItem("userId");
+    if (legacyId) {
+      headers["X-User-Id"] = legacyId;
+    }
 
-    const res = await fetch(queryKey[0] as string, {
+    const url = stripUserIdFromUrl(queryKey[0] as string);
+    const res = await fetch(url, {
       headers,
       credentials: "include",
     });

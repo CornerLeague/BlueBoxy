@@ -107,8 +107,6 @@ export const userStats = pgTable("user_stats", {
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
   createdAt: true,
-  updatedAt: true,
-  lastActiveAt: true,
 });
 
 export const insertPartnerSchema = createInsertSchema(partners).omit({

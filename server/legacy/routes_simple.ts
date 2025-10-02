@@ -122,8 +122,9 @@ export async function registerRoutes(app: Express) {
       const { email, password } = req.body;
       
       // Find user
-      let user = null;
-      for (const u of sessionData.users.values()) {
+      let user: any = null;
+      const usersArray = Array.from(sessionData.users.values()) as any[];
+      for (const u of usersArray) {
         if (u.email === email && u.password === password) {
           user = u;
           break;
@@ -147,7 +148,7 @@ export async function registerRoutes(app: Express) {
           location: user.location
         }
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Login error:', error);
       res.status(500).json({ error: 'Failed to login' });
     }
@@ -191,7 +192,7 @@ export async function registerRoutes(app: Express) {
         preferences: user.preferences,
         location: user.location
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching user profile:", error);
       res.status(500).json({ error: error.message });
     }

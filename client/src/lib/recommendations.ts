@@ -32,9 +32,9 @@ export function generateRecommendations(personalityType: PersonalityType): Recom
     ],
   };
   
-  const messages = messageTemplates[personalityType] || messageTemplates["Thoughtful Harmonizer"];
+  const messages = messageTemplates[personalityType as keyof typeof messageTemplates] || messageTemplates["Thoughtful Harmonizer"];
   
-  messages.forEach((message, index) => {
+  messages.forEach((message: string, index: number) => {
     recommendations.push({
       type: "message",
       category: index === 0 ? "daily_checkin" : index === 1 ? "appreciation" : "support",
@@ -60,9 +60,9 @@ export function generateRecommendations(personalityType: PersonalityType): Recom
     ],
   };
   
-  const activities = activityTemplates[personalityType] || activityTemplates["Thoughtful Harmonizer"];
+  const activities = activityTemplates[personalityType as keyof typeof activityTemplates] || activityTemplates["Thoughtful Harmonizer"];
   
-  activities.forEach((activity, index) => {
+  activities.forEach((activity: string, index: number) => {
     recommendations.push({
       type: "activity",
       category: "date_idea",

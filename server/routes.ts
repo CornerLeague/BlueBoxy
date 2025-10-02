@@ -22,12 +22,119 @@ import {
 } from "./message-generation";
 import { grokAIService } from "./grok-ai";
 import { calendarProviderManager } from "./calendar-providers";
+import { requireAuth, clerkClient } from "@clerk/express";
 
 // Remove JWT authentication - use simple session management
 
 export async function registerRoutes(app: Express) {
   
-  // Authentication routes - simplified without JWT
+  // Helper middleware: ensures a local user exists for the Clerk session and attaches it to req
+  const ensureLocalUser = async (req: any, res: any, next: any) => {
+    try {
+      const { userId: clerkUserId } = req.auth || {};
+      if (!clerkUserId) return res.status(401).json({ error: "Unauthorized" });
+
+      const clerkUser = await clerkClient.users.getUser(clerkUserId);
+      const email = clerkUser.emailAddresses?.[0]?.emailAddress || `${clerkUserId}@clerk.local`;
+      const name = [clerkUser.firstName, clerkUser.lastName].filter(Boolean).join(" ") || clerkUser.username || "User";
+
+      let user = await storage.getUserByEmail(email);
+      if (!user) {
+        user = await storage.createUser({
+          email,
+          name,
+          passwordHash: "clerk",
+          partnerName: null,
+          relationshipDuration: null,
+          personalityType: null,
+          personalityInsight: null,
+          preferences: null,
+          location: null,
+        } as any);
+      }
+
+      req.localUser = user;
+      next();
+    } catch (err) {
+      console.error("ensureLocalUser error:", err);
+      res.status(500).json({ error: "Failed to resolve local user" });
+    }
+  };
+
+  // Soft resolver: tries Clerk; if missing, falls back to userId in body/query
+  const resolveLocalUserSoft = async (req: any, res: any, next: any) => {
+    try {
+      const { userId: clerkUserId } = req.auth || {};
+      if (clerkUserId) {
+        return await ensureLocalUser(req, res, next);
+      }
+      // Fallback for legacy flows (temporary during migration)
+      const candidate = (req.body?.userId ?? req.query?.userId ?? req.headers['x-user-id']) as any;
+      const parsed = typeof candidate === 'string' ? parseInt(candidate, 10) : candidate;
+      if (parsed && !Number.isNaN(parsed)) {
+        const user = await storage.getUser(parsed);
+        if (user) {
+          req.localUser = user;
+          return next();
+        }
+      }
+      return res.status(401).json({ error: "Unauthorized" });
+    } catch (err) {
+      console.error("resolveLocalUserSoft error:", err);
+      res.status(500).json({ error: "Failed to resolve local user" });
+    }
+  };
+
+  // Clerk-authenticated endpoint: returns Clerk identity and ensures a local user exists
+app.get("/api/auth/me", requireAuth(), ensureLocalUser, async (req: any, res) => {
+    try {
+      const { userId } = req.auth || {};
+      if (!userId) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      // Fetch Clerk user to get email/name
+      const clerkUser = await clerkClient.users.getUser(userId);
+      const email = clerkUser.emailAddresses?.[0]?.emailAddress || `${userId}@clerk.local`;
+      const name = [clerkUser.firstName, clerkUser.lastName].filter(Boolean).join(" ") || clerkUser.username || "User";
+
+      // Find or create local user by email
+      let user = await storage.getUserByEmail(email);
+      if (!user) {
+        user = await storage.createUser({
+          email,
+          name,
+          passwordHash: "clerk", // placeholder for external auth users
+          partnerName: null,
+          relationshipDuration: null,
+          personalityType: null,
+          personalityInsight: null,
+          preferences: null,
+          location: null,
+        } as any);
+      }
+
+      return res.json({
+        clerk: { userId, email, name },
+        user: {
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          partnerName: user.partnerName,
+          relationshipDuration: user.relationshipDuration,
+          personalityType: user.personalityType,
+          personalityInsight: user.personalityInsight,
+          preferences: user.preferences,
+          location: user.location,
+        },
+      });
+    } catch (error: any) {
+      console.error("/api/auth/me error:", error);
+      return res.status(500).json({ error: "Failed to fetch authenticated user" });
+    }
+  });
+
+  // Authentication routes - simplified without JWT (left for legacy flows; Clerk is primary)
   app.post("/api/auth/register", async (req, res) => {
     try {
       const { email, password, name, partnerName, relationshipDuration } = req.body;
@@ -68,7 +175,7 @@ export async function registerRoutes(app: Express) {
           location: user.location
         }
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Registration error:", error);
       res.status(400).json({ error: error.message });
     }
@@ -102,22 +209,16 @@ export async function registerRoutes(app: Express) {
           location: user.location
         }
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Login error:", error);
       res.status(500).json({ error: error.message });
     }
   });
 
-  // User profile routes - simplified without authentication middleware
-  app.get("/api/user/profile", async (req, res) => {
+  // User profile route - secured with Clerk; uses local userId from session
+app.get("/api/user/profile", resolveLocalUserSoft, async (req: any, res) => {
     try {
-      const userIdStr = req.query.userId as string;
-      const userId = parseInt(userIdStr);
-      
-      if (isNaN(userId)) {
-        return res.status(400).json({ error: "Invalid user ID" });
-      }
-      
+      const userId = req.localUser.id as number;
       const user = await storage.getUser(userId);
       
       if (!user) {
@@ -131,8 +232,8 @@ export async function registerRoutes(app: Express) {
         if (assessment) {
           personalityInsight = await generatePersonalityInsight(
             user.personalityType,
-            user.partnerName,
-            assessment.responses
+            user.partnerName || "",
+            assessment.responses as Record<string, string>
           );
           
           // Save generated insight to user profile
@@ -151,33 +252,29 @@ export async function registerRoutes(app: Express) {
         preferences: user.preferences,
         location: user.location
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching user profile:", error);
       res.status(500).json({ error: error.message });
     }
   });
 
-  // Assessment routes - simplified without authentication middleware
-  app.post("/api/assessment/responses", async (req, res) => {
+  // Assessment routes - secured; derive userId from Clerk session
+app.post("/api/assessment/responses", resolveLocalUserSoft, async (req: any, res) => {
     try {
-      const { userId, responses, personalityType } = req.body;
-      
-      // Validate userId
-      if (!userId || isNaN(parseInt(userId))) {
-        return res.status(400).json({ error: "Invalid user ID" });
-      }
+      const { responses, personalityType } = req.body;
+      const userId = req.localUser.id as number;
       
       const assessmentData = {
-        userId: parseInt(userId),
+        userId,
         responses,
-        personalityType: personalityType || "Unknown", // Provide fallback
+        personalityType: personalityType || "Unknown",
         completedAt: new Date()
       };
 
       const assessment = await storage.saveAssessmentResponse(assessmentData);
       
       // Update user's personality type
-      await storage.updateUser(parseInt(userId), { 
+      await storage.updateUser(userId, { 
         personalityType: personalityType || "Unknown"
       });
 
@@ -187,7 +284,7 @@ export async function registerRoutes(app: Express) {
         personalityType: assessment.personalityType,
         completedAt: assessment.completedAt
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error saving assessment:", error);
       res.status(500).json({ error: "Failed to save assessment" });
     }
@@ -204,7 +301,7 @@ export async function registerRoutes(app: Express) {
         responses,
         onboardingData
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error processing guest assessment:", error);
       res.status(500).json({ error: "Failed to process guest assessment" });
     }
@@ -212,11 +309,12 @@ export async function registerRoutes(app: Express) {
 
 
 
-  // User preferences route - simplified without authentication
-  app.post("/api/user/preferences", async (req, res) => {
+  // User preferences route - secured; derive userId
+app.post("/api/user/preferences", resolveLocalUserSoft, async (req: any, res) => {
     try {
-      const { userId, preferences, location } = req.body;
-      const user = await storage.updateUserPreferences(parseInt(userId), preferences, location);
+      const { preferences, location } = req.body;
+      const userId = req.localUser.id as number;
+      const user = await storage.updateUserPreferences(userId, preferences, location);
       
       res.json({ 
         message: "Preferences saved successfully",
@@ -227,33 +325,27 @@ export async function registerRoutes(app: Express) {
           location: user.location
         }
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error saving preferences:", error);
       res.status(500).json({ error: "Failed to save preferences" });
     }
   });
 
-  // Activities route
+  // Activities route (public)
   app.get("/api/activities", async (req, res) => {
     try {
       const activities = await storage.getActivities();
       res.json(activities);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching activities:", error);
       res.status(500).json({ error: "Failed to fetch activities" });
     }
   });
 
-  // Update the remaining routes to remove authenticateToken middleware
-  app.get("/api/recommendations/activities", async (req, res) => {
+  // Recommendations: activities - secured; derive userId
+app.get("/api/recommendations/activities", requireAuth(), ensureLocalUser, async (req: any, res) => {
     try {
-      const userIdStr = req.query.userId as string;
-      const userId = parseInt(userIdStr);
-      
-      if (isNaN(userId)) {
-        return res.status(400).json({ error: "Invalid user ID" });
-      }
-      
+      const userId = req.localUser.id as number;
       const user = await storage.getUser(userId);
       const assessment = await storage.getAssessmentByUserId(userId);
       
@@ -263,30 +355,25 @@ export async function registerRoutes(app: Express) {
 
       const recommendationContext: RecommendationContext = {
         userName: user.name,
-        partnerName: user.partnerName,
-        personalityType: user.personalityType,
-        relationshipDuration: user.relationshipDuration,
-        assessmentResponses: assessment.responses
+        partnerName: user.partnerName || "",
+        personalityType: user.personalityType || "Unknown",
+        relationshipDuration: user.relationshipDuration || "",
+        assessmentResponses: assessment.responses as Record<string, string>
       };
 
       const activities = await generateActivityRecommendations(recommendationContext, 8);
       
       res.json(activities);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error generating activity recommendations:", error);
       res.status(500).json({ error: "Failed to generate activity recommendations" });
     }
   });
 
-  app.get("/api/recommendations/location-based", async (req, res) => {
+app.get("/api/recommendations/location-based", requireAuth(), ensureLocalUser, async (req: any, res) => {
     try {
-      const userIdStr = req.query.userId as string;
-      const userId = parseInt(userIdStr);
+      const userId = req.localUser.id as number;
       const { radius = 25 } = req.query;
-      
-      if (isNaN(userId)) {
-        return res.status(400).json({ error: "Invalid user ID" });
-      }
       
       const user = await storage.getUser(userId);
       const assessment = await storage.getAssessmentByUserId(userId);
@@ -301,33 +388,34 @@ export async function registerRoutes(app: Express) {
 
       const recommendationContext: RecommendationContext = {
         userName: user.name,
-        partnerName: user.partnerName,
-        personalityType: user.personalityType,
-        relationshipDuration: user.relationshipDuration,
-        assessmentResponses: assessment.responses
+        partnerName: user.partnerName || "",
+        personalityType: user.personalityType || "Unknown",
+        relationshipDuration: user.relationshipDuration || "",
+        assessmentResponses: assessment.responses as Record<string, string>
       };
 
       const activities = await generateLocationBasedRecommendations(
         recommendationContext,
-        user.location,
+        user.location as any,
         user.preferences,
         parseInt(radius as string),
         12
       );
       
       res.json({ activities });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error generating location-based recommendations:", error);
       res.status(500).json({ error: "Failed to generate location-based recommendations" });
     }
   });
 
   // New Grok AI Location-Based Recommendation Endpoints
-  app.post("/api/recommendations/location-based", async (req, res) => {
+app.post("/api/recommendations/location-based", requireAuth(), ensureLocalUser, async (req: any, res) => {
     try {
-      const { userId, location, radius, category, preferences, personalityType, resetAlgorithm } = req.body;
+      const { location, radius, category, preferences, personalityType, resetAlgorithm } = req.body;
+      const userId = req.localUser.id as number;
       
-      if (!userId || !location || !radius || !category) {
+      if (!location || !radius || !category) {
         return res.status(400).json({ error: "Missing required parameters" });
       }
       
@@ -352,7 +440,7 @@ export async function registerRoutes(app: Express) {
         category,
         radius
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error generating location-based recommendations:", error);
       res.status(500).json({ 
         success: false,
@@ -361,11 +449,12 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  app.post("/api/recommendations/drinks", async (req, res) => {
+app.post("/api/recommendations/drinks", requireAuth(), ensureLocalUser, async (req: any, res) => {
     try {
-      const { userId, location, radius, drinkPreferences, personalityType, resetAlgorithm } = req.body;
+      const { location, radius, drinkPreferences, personalityType, resetAlgorithm } = req.body;
+      const userId = req.localUser.id as number;
       
-      if (!userId || !location || !radius || !drinkPreferences) {
+      if (!location || !radius || !drinkPreferences) {
         return res.status(400).json({ error: "Missing required parameters" });
       }
       
@@ -387,7 +476,7 @@ export async function registerRoutes(app: Express) {
         canGenerateMore: result.canGenerateMore,
         generationsRemaining: result.generationsRemaining
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error generating drink recommendations:", error);
       res.status(500).json({ 
         success: false,
@@ -418,7 +507,7 @@ export async function registerRoutes(app: Express) {
           { id: "other", label: "Other", icon: "🥛" }
         ]
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching categories:", error);
       res.status(500).json({ 
         success: false,
@@ -428,13 +517,10 @@ export async function registerRoutes(app: Express) {
   });
 
   // Update user preferences endpoint to include drink preferences
-  app.put("/api/user/preferences", async (req, res) => {
+app.put("/api/user/preferences", requireAuth(), ensureLocalUser, async (req: any, res) => {
     try {
-      const { userId, preferences } = req.body;
-      
-      if (!userId) {
-        return res.status(400).json({ error: "User ID is required" });
-      }
+      const { preferences } = req.body;
+      const userId = req.localUser.id as number;
       
       const user = await storage.getUser(userId);
       if (!user) {
@@ -442,7 +528,7 @@ export async function registerRoutes(app: Express) {
       }
       
       const updatedUser = await storage.updateUser(userId, {
-        preferences: { ...user.preferences, ...preferences }
+        preferences: { ...(user.preferences || {}), ...(preferences || {}) }
       });
       
       res.json({
@@ -450,7 +536,7 @@ export async function registerRoutes(app: Express) {
         user: updatedUser,
         preferences: updatedUser.preferences
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error updating user preferences:", error);
       res.status(500).json({ 
         success: false,
@@ -460,33 +546,25 @@ export async function registerRoutes(app: Express) {
   });
 
   // Calendar Provider Routes
-  app.get("/api/calendar/providers", async (req, res) => {
+app.get("/api/calendar/providers", requireAuth(), ensureLocalUser, async (req: any, res) => {
     try {
-      const userId = req.query.userId as string;
-      if (!userId) {
-        return res.status(400).json({ error: "User ID is required" });
-      }
-      
+      const userId = String(req.localUser.id);
       const providers = await calendarProviderManager.getProviders(userId);
       res.json(providers);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching calendar providers:", error);
       res.status(500).json({ error: "Failed to fetch calendar providers" });
     }
   });
 
-  app.post("/api/calendar/connect/:providerId", async (req, res) => {
+app.post("/api/calendar/connect/:providerId", requireAuth(), ensureLocalUser, async (req: any, res) => {
     try {
       const { providerId } = req.params;
-      const { userId } = req.body;
-      
-      if (!userId) {
-        return res.status(400).json({ error: "User ID is required" });
-      }
+      const userId = String(req.localUser.id);
       
       const authUrl = await calendarProviderManager.generateAuthUrl(providerId, userId);
       res.json({ authUrl });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error connecting calendar provider:", error);
       res.status(500).json({ error: error.message || "Failed to connect calendar provider" });
     }
@@ -516,7 +594,7 @@ export async function registerRoutes(app: Express) {
             window.close();
           </script>
         `);
-      } catch (error) {
+      } catch (error: any) {
         console.error("Token exchange error:", error);
         res.send(`
           <script>
@@ -528,7 +606,7 @@ export async function registerRoutes(app: Express) {
           </script>
         `);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Calendar callback error:", error);
       res.status(500).send("Authentication failed");
     }
@@ -545,82 +623,74 @@ export async function registerRoutes(app: Express) {
       
       await calendarProviderManager.disconnectProvider(providerId, userId);
       res.json({ success: true });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error disconnecting calendar provider:", error);
       res.status(500).json({ error: error.message || "Failed to disconnect calendar provider" });
     }
   });
 
-  app.get("/api/calendar/events/:providerId", async (req, res) => {
+app.get("/api/calendar/events/:providerId", requireAuth(), ensureLocalUser, async (req: any, res) => {
     try {
       const { providerId } = req.params;
-      const { userId, startDate, endDate } = req.query;
-      
-      if (!userId) {
-        return res.status(400).json({ error: "User ID is required" });
-      }
+      const { startDate, endDate } = req.query;
+      const userId = String(req.localUser.id);
       
       const events = await calendarProviderManager.getEvents(
         providerId,
-        userId as string,
+        userId,
         startDate as string,
         endDate as string
       );
       res.json(events);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching calendar events:", error);
       res.status(500).json({ error: error.message || "Failed to fetch calendar events" });
     }
   });
 
   // User events route - return user's calendar events from database
-  app.get("/api/events/user/:userId", async (req, res) => {
+app.get("/api/events/user/:userId", requireAuth(), ensureLocalUser, async (req: any, res) => {
     try {
-      const { userId } = req.params;
-      
-      if (!userId) {
-        return res.status(400).json({ error: "User ID is required" });
-      }
-      
-      const events = await storage.getUserEvents(parseInt(userId));
+      const localUserId = req.localUser.id as number;
+      const events = await storage.getUserEvents(localUserId);
       res.json(events);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching user events:", error);
       res.status(500).json({ error: "Failed to fetch user events" });
     }
   });
 
   // Create new event route
-  app.post("/api/events", async (req, res) => {
+app.post("/api/events", requireAuth(), ensureLocalUser, async (req: any, res) => {
     try {
-      const eventData = insertCalendarEventSchema.parse(req.body);
+      const injected = { ...req.body, userId: req.localUser.id };
+      const eventData = insertCalendarEventSchema.parse(injected);
       const event = await storage.createEvent(eventData);
       
       // Increment events created counter
       if (eventData.userId) {
-        await storage.incrementEventsCreated(parseInt(eventData.userId));
+        await storage.incrementEventsCreated(eventData.userId);
       }
       
       res.json(event);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error creating event:", error);
       res.status(400).json({ error: error.message });
     }
   });
 
   // User statistics routes
-  app.get("/api/user/stats/:userId", async (req, res) => {
+app.get("/api/user/stats/:userId", requireAuth(), ensureLocalUser, async (req: any, res) => {
     try {
-      const { userId } = req.params;
-      const stats = await storage.getUserStats(parseInt(userId));
+      const userId = req.localUser.id as number;
+      const stats = await storage.getUserStats(userId);
       
       if (!stats) {
-        // Return default stats if none exist
         return res.json({ eventsCreated: 0 });
       }
       
       res.json(stats);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching user stats:", error);
       res.status(500).json({ error: "Failed to fetch user statistics" });
     }
@@ -629,21 +699,17 @@ export async function registerRoutes(app: Express) {
 
 
   // AI-powered recommendations endpoint
-  app.post("/api/recommendations/ai-powered", async (req: any, res) => {
+app.post("/api/recommendations/ai-powered", requireAuth(), ensureLocalUser, async (req: any, res) => {
     try {
-      const { userId, category, location, preferences } = req.body;
+      const { category, location, preferences } = req.body;
       
-      if (!userId) {
-        return res.status(400).json({ error: "User ID is required" });
-      }
-
-      const user = await storage.getUser(parseInt(userId));
+      const user = await storage.getUser(req.localUser.id);
       if (!user) {
         return res.status(404).json({ error: "User not found" });
       }
 
       // Get user's assessment for personality context
-      const assessment = await storage.getAssessmentByUserId(parseInt(userId));
+      const assessment = await storage.getAssessmentByUserId(req.localUser.id);
       
       // Generate AI-powered recommendations
       const recommendations = await generateAIPoweredRecommendations({
@@ -662,25 +728,25 @@ export async function registerRoutes(app: Express) {
         recommendations,
         message: "AI recommendations generated successfully" 
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error generating AI-powered recommendations:", error);
       res.status(500).json({ error: "Failed to generate AI recommendations" });
     }
   });
 
   // Message Generation Routes
-  app.post("/api/messages/generate", async (req, res) => {
+app.post("/api/messages/generate", resolveLocalUserSoft, async (req: any, res) => {
     try {
-      const { userId, category, timeOfDay, recentContext, specialOccasion } = req.body;
+      const { category, timeOfDay, recentContext, specialOccasion } = req.body;
       
-      if (!userId || !category) {
+      if (!category) {
         return res.status(400).json({ 
           success: false, 
-          error: "User ID and category are required" 
+          error: "Category is required" 
         });
       }
 
-      const user = await storage.getUser(parseInt(userId));
+      const user = await storage.getUser(req.localUser.id);
       if (!user) {
         return res.status(404).json({ 
           success: false, 
@@ -689,7 +755,7 @@ export async function registerRoutes(app: Express) {
       }
 
       const request: GenerateMessageRequest = {
-        userId: userId.toString(),
+        userId: (req.localUser.id as number).toString(),
         category,
         timeOfDay,
         recentContext,
@@ -699,7 +765,7 @@ export async function registerRoutes(app: Express) {
       const result = await generatePersonalizedMessages(request, user);
       res.json(result);
 
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error generating messages:", error);
       res.status(500).json({ 
         success: false, 
@@ -715,7 +781,7 @@ export async function registerRoutes(app: Express) {
         success: true,
         categories
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching message categories:", error);
       res.status(500).json({ 
         success: false, 
@@ -772,11 +838,12 @@ function calculatePersonalityScores(responses: any) {
 
 function determinePersonalityType(scores: any): string {
   // Find the highest scoring trait
-  const maxScore = Math.max(...Object.values(scores));
-  const topTrait = Object.entries(scores).find(([_, score]) => score === maxScore)?.[0];
+  const values = Object.values(scores) as number[];
+  const maxScore = Math.max(...values);
+  const topTrait = (Object.entries(scores).find(([_, score]) => score === maxScore)?.[0] || "thoughtful") as string;
 
   // Map traits to personality types
-  const traitToType = {
+  const traitToType: Record<string, string> = {
     thoughtful: "Thoughtful Harmonizer",
     practical: "Practical Supporter", 
     emotional: "Emotional Connector",

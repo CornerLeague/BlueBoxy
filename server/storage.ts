@@ -5,22 +5,25 @@ import {
   activities, 
   notifications,
   calendarEvents,
-  userStats,
-  type User, 
-  type InsertUser,
-  type Partner,
-  type InsertPartner,
-  type AssessmentResponse,
-  type InsertAssessmentResponse,
-  type Activity,
-  type InsertActivity,
-  type Notification,
-  type InsertNotification,
-  type CalendarEvent,
-  type InsertCalendarEvent,
-  type UserStats,
-  type InsertUserStats
+  userStats
 } from "@shared/schema";
+import type { InferSelectModel, InferInsertModel } from "drizzle-orm";
+
+// Infer types from schema
+export type User = InferSelectModel<typeof users>;
+export type InsertUser = InferInsertModel<typeof users>;
+export type Partner = InferSelectModel<typeof partners>;
+export type InsertPartner = InferInsertModel<typeof partners>;
+export type AssessmentResponse = InferSelectModel<typeof assessmentResponses>;
+export type InsertAssessmentResponse = InferInsertModel<typeof assessmentResponses>;
+export type Activity = InferSelectModel<typeof activities>;
+export type InsertActivity = InferInsertModel<typeof activities>;
+export type Notification = InferSelectModel<typeof notifications>;
+export type InsertNotification = InferInsertModel<typeof notifications>;
+export type CalendarEvent = InferSelectModel<typeof calendarEvents>;
+export type InsertCalendarEvent = InferInsertModel<typeof calendarEvents>;
+export type UserStats = InferSelectModel<typeof userStats>;
+export type InsertUserStats = InferInsertModel<typeof userStats>;
 import { db } from "./db";
 import { eq, and, desc, asc } from "drizzle-orm";
 
@@ -53,26 +56,26 @@ export interface IStorage {
 export class MemStorage implements IStorage {
   private users: Map<number, User>;
   private assessmentResponses: Map<number, AssessmentResponse>;
-  private recommendations: Map<number, Recommendation>;
   private activities: Map<number, Activity>;
-  private scheduledEvents: Map<number, ScheduledEvent>;
+  private calendarEvents: Map<number, CalendarEvent>;
+  private userStatsMap: Map<number, UserStats>;
   private currentUserId: number;
   private currentAssessmentId: number;
-  private currentRecommendationId: number;
   private currentActivityId: number;
   private currentEventId: number;
+  private currentStatsId: number;
 
   constructor() {
     this.users = new Map();
     this.assessmentResponses = new Map();
-    this.recommendations = new Map();
     this.activities = new Map();
-    this.scheduledEvents = new Map();
+    this.calendarEvents = new Map();
+    this.userStatsMap = new Map();
     this.currentUserId = 1;
     this.currentAssessmentId = 1;
-    this.currentRecommendationId = 1;
     this.currentActivityId = 1;
     this.currentEventId = 1;
+    this.currentStatsId = 1;
     
     this.seedData();
   }
@@ -134,12 +137,14 @@ export class MemStorage implements IStorage {
       id,
       name: insertUser.name,
       email: insertUser.email,
-      password: insertUser.password,
+      passwordHash: insertUser.passwordHash,
       partnerName: insertUser.partnerName || null,
       relationshipDuration: insertUser.relationshipDuration || null,
-      assessmentCompleted: false,
-      personalityType: null,
-      createdAt: new Date(),
+      personalityType: insertUser.personalityType || null,
+      personalityInsight: insertUser.personalityInsight || null,
+      preferences: insertUser.preferences || null,
+      location: insertUser.location || null,
+      createdAt: new Date()
     };
     this.users.set(id, user);
     return user;
@@ -173,10 +178,10 @@ export class MemStorage implements IStorage {
     const id = this.currentAssessmentId++;
     const assessmentResponse: AssessmentResponse = {
       id,
-      userId: response.userId || null,
+      userId: response.userId,
       responses: response.responses,
-      personalityType: response.personalityType,
-      completedAt: new Date(),
+      personalityType: response.personalityType || null,
+      completedAt: new Date()
     };
     this.assessmentResponses.set(id, assessmentResponse);
     return assessmentResponse;
@@ -188,79 +193,7 @@ export class MemStorage implements IStorage {
     );
   }
 
-  async getRecommendationsByUserId(userId: number): Promise<Recommendation[]> {
-    return Array.from(this.recommendations.values()).filter(
-      rec => rec.userId === userId && rec.isActive
-    );
-  }
-
-  async createRecommendation(recommendation: InsertRecommendation): Promise<Recommendation> {
-    const id = this.currentRecommendationId++;
-    const newRecommendation: Recommendation = {
-      id,
-      userId: recommendation.userId || null,
-      type: recommendation.type,
-      category: recommendation.category,
-      content: recommendation.content,
-      priority: recommendation.priority,
-      personalityMatch: recommendation.personalityMatch || null,
-      isActive: recommendation.isActive !== undefined ? recommendation.isActive : true,
-      createdAt: new Date(),
-    };
-    this.recommendations.set(id, newRecommendation);
-    return newRecommendation;
-  }
-
-  async generateSampleRecommendations(userId: number, personalityType: string): Promise<void> {
-    const sampleRecommendations = [
-      {
-        userId,
-        type: "message",
-        category: "morning",
-        content: "Good morning, beautiful! I hope your day is as amazing as you are. Can't wait to see you tonight! 💕",
-        priority: "medium",
-        personalityMatch: personalityType
-      },
-      {
-        userId,
-        type: "message",
-        category: "appreciation",
-        content: "I was just thinking about how lucky I am to have you in my life. Thank you for being so supportive and understanding.",
-        priority: "high",
-        personalityMatch: personalityType
-      },
-      {
-        userId,
-        type: "activity",
-        category: "date",
-        content: "Plan a cozy movie night at home with their favorite snacks and a film you both want to watch.",
-        priority: "medium",
-        personalityMatch: personalityType
-      },
-      {
-        userId,
-        type: "message",
-        category: "support",
-        content: "I know you've been working hard lately. Remember to take care of yourself - you're amazing and I believe in you!",
-        priority: "high",
-        personalityMatch: personalityType
-      }
-    ];
-
-    for (const rec of sampleRecommendations) {
-      await this.createRecommendation(rec as InsertRecommendation);
-    }
-  }
-
-  async updateRecommendation(id: number, updates: Partial<InsertRecommendation>): Promise<Recommendation> {
-    const recommendation = this.recommendations.get(id);
-    if (!recommendation) {
-      throw new Error('Recommendation not found');
-    }
-    const updated = { ...recommendation, ...updates };
-    this.recommendations.set(id, updated);
-    return updated;
-  }
+  // Legacy recommendation methods removed - not in current schema
 
   async getActivities(): Promise<Activity[]> {
     return Array.from(this.activities.values());
@@ -289,40 +222,59 @@ export class MemStorage implements IStorage {
     return newActivity;
   }
 
-  async getEventsByUserId(userId: number): Promise<ScheduledEvent[]> {
-    return Array.from(this.scheduledEvents.values()).filter(
+  async getUserEvents(userId: number): Promise<CalendarEvent[]> {
+    return Array.from(this.calendarEvents.values()).filter(
       event => event.userId === userId
     );
   }
 
-  async createEvent(event: InsertScheduledEvent): Promise<ScheduledEvent> {
+  async createEvent(event: InsertCalendarEvent): Promise<CalendarEvent> {
     const id = this.currentEventId++;
-    const newEvent: ScheduledEvent = {
+    const newEvent: CalendarEvent = {
       id,
-      userId: event.userId || null,
+      userId: event.userId,
       title: event.title,
       description: event.description || null,
-      date: event.date,
-      type: event.type,
-      reminderSet: event.reminderSet !== undefined ? event.reminderSet : false,
+      location: event.location || null,
+      startTime: event.startTime,
+      endTime: event.endTime,
+      allDay: event.allDay || false,
+      eventType: event.eventType,
+      status: event.status || null,
+      externalEventId: event.externalEventId || null,
+      calendarProvider: event.calendarProvider || null,
+      reminders: event.reminders || null,
+      metadata: event.metadata || null,
       createdAt: new Date(),
+      updatedAt: new Date()
     };
-    this.scheduledEvents.set(id, newEvent);
+    this.calendarEvents.set(id, newEvent);
     return newEvent;
   }
 
-  async updateEvent(id: number, updates: Partial<InsertScheduledEvent>): Promise<ScheduledEvent> {
-    const event = this.scheduledEvents.get(id);
-    if (!event) {
-      throw new Error('Event not found');
-    }
-    const updated = { ...event, ...updates };
-    this.scheduledEvents.set(id, updated);
-    return updated;
+  async getUserStats(userId: number): Promise<UserStats | undefined> {
+    return this.userStatsMap.get(userId);
   }
 
-  async deleteEvent(id: number): Promise<void> {
-    this.scheduledEvents.delete(id);
+  async incrementEventsCreated(userId: number): Promise<UserStats> {
+    let stats = this.userStatsMap.get(userId);
+    if (!stats) {
+      stats = {
+        id: this.currentStatsId++,
+        userId,
+        eventsCreated: 1,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      };
+    } else {
+      stats = {
+        ...stats,
+        eventsCreated: (stats.eventsCreated ?? 0) + 1,
+        updatedAt: new Date()
+      };
+    }
+    this.userStatsMap.set(userId, stats);
+    return stats;
   }
 }
 
@@ -421,7 +373,7 @@ export class DatabaseStorage implements IStorage {
       const userEvents = await db
         .select()
         .from(calendarEvents)
-        .where(eq(calendarEvents.userId, userId.toString()))
+        .where(eq(calendarEvents.userId, userId))
         .orderBy(asc(calendarEvents.startTime));
       return userEvents;
     } catch (error) {
@@ -472,7 +424,7 @@ export class DatabaseStorage implements IStorage {
       const [updatedStats] = await db
         .update(userStats)
         .set({ 
-          eventsCreated: stats.eventsCreated + 1,
+          eventsCreated: (stats.eventsCreated ?? 0) + 1,
           updatedAt: new Date()
         })
         .where(eq(userStats.userId, userId))
@@ -491,13 +443,11 @@ class LocalStorageStorage implements IStorage {
     this.storage = {
       users: new Map(),
       assessments: new Map(),
-      recommendations: new Map(),
       activities: new Map(),
       events: new Map(),
       userStats: new Map(),
       currentUserId: 1,
       currentAssessmentId: 1,
-      currentRecommendationId: 1,
       currentActivityId: 1,
       currentEventId: 1,
       currentStatsId: 1
@@ -514,9 +464,10 @@ class LocalStorageStorage implements IStorage {
         name: "Cozy Garden Café",
         description: "A charming café surrounded by beautiful gardens, perfect for intimate conversations.",
         category: "dining",
+        location: "Downtown",
         rating: 4.5,
-        personalityMatch: "92% match",
         distance: "0.8 miles",
+        personalityMatch: "92% match",
         imageUrl: "/api/placeholder/400/300"
       },
       {
@@ -524,9 +475,10 @@ class LocalStorageStorage implements IStorage {
         name: "Sunset Beach Walk",
         description: "Take a romantic stroll along the beach during golden hour.",
         category: "outdoor",
+        location: "Beach",
         rating: 4.8,
-        personalityMatch: "88% match",
         distance: "1.2 miles",
+        personalityMatch: "88% match",
         imageUrl: "/api/placeholder/400/300"
       },
       {
@@ -534,9 +486,10 @@ class LocalStorageStorage implements IStorage {
         name: "Art Gallery Downtown",
         description: "Explore contemporary art together in this intimate gallery space.",
         category: "cultural",
+        location: "Downtown",
         rating: 4.3,
-        personalityMatch: "85% match",
         distance: "0.5 miles",
+        personalityMatch: "85% match",
         imageUrl: "/api/placeholder/400/300"
       }
     ];
@@ -562,15 +515,14 @@ class LocalStorageStorage implements IStorage {
       id: this.storage.currentUserId++,
       email: insertUser.email,
       name: insertUser.name,
-      partnerName: insertUser.partnerName,
-      relationshipDuration: insertUser.relationshipDuration,
+      partnerName: insertUser.partnerName || null,
+      relationshipDuration: insertUser.relationshipDuration || null,
       passwordHash: insertUser.passwordHash,
-      personalityType: insertUser.personalityType,
-      personalityInsight: insertUser.personalityInsight,
-      preferences: insertUser.preferences,
-      location: insertUser.location,
-      createdAt: new Date(),
-      updatedAt: new Date()
+      personalityType: insertUser.personalityType || null,
+      personalityInsight: insertUser.personalityInsight || null,
+      preferences: insertUser.preferences || null,
+      location: insertUser.location || null,
+      createdAt: new Date()
     };
     
     this.storage.users.set(user.id, user);
@@ -581,7 +533,7 @@ class LocalStorageStorage implements IStorage {
     const user = this.storage.users.get(id);
     if (!user) throw new Error("User not found");
     
-    const updatedUser = { ...user, ...updates, updatedAt: new Date() };
+    const updatedUser = { ...user, ...updates };
     this.storage.users.set(id, updatedUser);
     return updatedUser;
   }
@@ -593,8 +545,7 @@ class LocalStorageStorage implements IStorage {
     const updatedUser = { 
       ...user, 
       preferences, 
-      location,
-      updatedAt: new Date() 
+      location
     };
     this.storage.users.set(id, updatedUser);
     return updatedUser;
@@ -605,10 +556,8 @@ class LocalStorageStorage implements IStorage {
       id: this.storage.currentAssessmentId++,
       userId: response.userId,
       responses: response.responses,
-      personalityType: response.personalityType,
-      completedAt: new Date(),
-      createdAt: new Date(),
-      updatedAt: new Date()
+      personalityType: response.personalityType || null,
+      completedAt: new Date()
     };
     
     this.storage.assessments.set(assessmentResponse.id, assessmentResponse);
@@ -622,47 +571,13 @@ class LocalStorageStorage implements IStorage {
     return undefined;
   }
   
-  async getRecommendationsByUserId(userId: number): Promise<Recommendation[]> {
-    const recommendations: Recommendation[] = [];
-    for (const rec of this.storage.recommendations.values()) {
-      if (rec.userId === userId) recommendations.push(rec);
-    }
-    return recommendations;
-  }
-  
-  async createRecommendation(recommendation: InsertRecommendation): Promise<Recommendation> {
-    const newRecommendation: Recommendation = {
-      id: this.storage.currentRecommendationId++,
-      userId: recommendation.userId,
-      type: recommendation.type,
-      category: recommendation.category,
-      content: recommendation.content,
-      priority: recommendation.priority,
-      personalityMatch: recommendation.personalityMatch,
-      isRead: false,
-      createdAt: new Date(),
-      updatedAt: new Date()
-    };
-    
-    this.storage.recommendations.set(newRecommendation.id, newRecommendation);
-    return newRecommendation;
-  }
-  
-  async updateRecommendation(id: number, updates: Partial<InsertRecommendation>): Promise<Recommendation> {
-    const recommendation = this.storage.recommendations.get(id);
-    if (!recommendation) throw new Error("Recommendation not found");
-    
-    const updatedRecommendation = { ...recommendation, ...updates, updatedAt: new Date() };
-    this.storage.recommendations.set(id, updatedRecommendation);
-    return updatedRecommendation;
-  }
-  
   async getActivities(): Promise<Activity[]> {
-    return Array.from(this.storage.activities.values());
+    return Array.from(this.storage.activities.values()) as Activity[];
   }
   
   async getActivitiesByPersonality(personalityType: string): Promise<Activity[]> {
-    return Array.from(this.storage.activities.values());
+    const list = Array.from(this.storage.activities.values()) as Activity[];
+    return list.filter((activity: Activity) => activity.personalityMatch === personalityType);
   }
   
   async createActivity(activity: InsertActivity): Promise<Activity> {
@@ -671,59 +586,15 @@ class LocalStorageStorage implements IStorage {
       name: activity.name,
       description: activity.description,
       category: activity.category,
-      rating: activity.rating,
-      personalityMatch: activity.personalityMatch,
-      distance: activity.distance,
-      imageUrl: activity.imageUrl,
-      createdAt: new Date(),
-      updatedAt: new Date()
+      location: activity.location || null,
+      rating: activity.rating || null,
+      distance: activity.distance || null,
+      personalityMatch: activity.personalityMatch || null,
+      imageUrl: activity.imageUrl || null
     };
     
     this.storage.activities.set(newActivity.id, newActivity);
     return newActivity;
-  }
-  
-  async getEventsByUserId(userId: number): Promise<ScheduledEvent[]> {
-    const events: ScheduledEvent[] = [];
-    for (const event of this.storage.events.values()) {
-      if (event.userId === userId) events.push(event);
-    }
-    return events;
-  }
-  
-  async createEvent(event: InsertScheduledEvent): Promise<ScheduledEvent> {
-    const newEvent: ScheduledEvent = {
-      id: this.storage.currentEventId++,
-      userId: event.userId,
-      title: event.title,
-      description: event.description,
-      scheduledDate: event.scheduledDate,
-      eventType: event.eventType,
-      location: event.location,
-      isCompleted: false,
-      createdAt: new Date(),
-      updatedAt: new Date()
-    };
-    
-    this.storage.events.set(newEvent.id, newEvent);
-    return newEvent;
-  }
-  
-  async updateEvent(id: number, updates: Partial<InsertScheduledEvent>): Promise<ScheduledEvent> {
-    const event = this.storage.events.get(id);
-    if (!event) throw new Error("Event not found");
-    
-    const updatedEvent = { ...event, ...updates, updatedAt: new Date() };
-    this.storage.events.set(id, updatedEvent);
-    return updatedEvent;
-  }
-  
-  async deleteEvent(id: number): Promise<void> {
-    this.storage.events.delete(id);
-  }
-  
-  async generateSampleRecommendations(userId: number, personalityType: string): Promise<void> {
-    // This will be handled by OpenAI integration
   }
 
   async getUserEvents(userId: number): Promise<CalendarEvent[]> {
@@ -738,19 +609,18 @@ class LocalStorageStorage implements IStorage {
     const newEvent: CalendarEvent = {
       id: this.storage.currentEventId++,
       userId: event.userId,
-      partnerId: event.partnerId,
       title: event.title,
-      description: event.description,
-      location: event.location,
+      description: event.description || null,
+      location: event.location || null,
       startTime: event.startTime,
       endTime: event.endTime,
       allDay: event.allDay || false,
       eventType: event.eventType,
-      status: event.status || 'scheduled',
-      externalEventId: event.externalEventId,
-      calendarProvider: event.calendarProvider,
-      reminders: event.reminders || [],
-      metadata: event.metadata || {},
+      status: event.status || null,
+      externalEventId: event.externalEventId || null,
+      calendarProvider: event.calendarProvider || null,
+      reminders: event.reminders || null,
+      metadata: event.metadata || null,
       createdAt: new Date(),
       updatedAt: new Date()
     };
@@ -761,34 +631,6 @@ class LocalStorageStorage implements IStorage {
 
   async getUserStats(userId: number): Promise<UserStats | undefined> {
     return this.storage.userStats?.get(userId);
-  }
-
-  async incrementMessagesCopied(userId: number): Promise<UserStats> {
-    if (!this.storage.userStats) {
-      this.storage.userStats = new Map();
-    }
-
-    let stats = this.storage.userStats.get(userId);
-    
-    if (!stats) {
-      stats = {
-        id: this.storage.currentStatsId++,
-        userId,
-        messagesCopied: 1,
-        eventsCreated: 0,
-        createdAt: new Date(),
-        updatedAt: new Date()
-      };
-    } else {
-      stats = {
-        ...stats,
-        messagesCopied: stats.messagesCopied + 1,
-        updatedAt: new Date()
-      };
-    }
-    
-    this.storage.userStats.set(userId, stats);
-    return stats;
   }
 
   async incrementEventsCreated(userId: number): Promise<UserStats> {
@@ -802,7 +644,6 @@ class LocalStorageStorage implements IStorage {
       stats = {
         id: this.storage.currentStatsId++,
         userId,
-        messagesCopied: 0,
         eventsCreated: 1,
         createdAt: new Date(),
         updatedAt: new Date()

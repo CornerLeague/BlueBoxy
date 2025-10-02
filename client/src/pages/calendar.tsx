@@ -14,7 +14,8 @@ export default function Calendar() {
   const [showProviders, setShowProviders] = useState(false);
   const userId = localStorage.getItem("userId");
 
-  const { data: events = [], isLoading } = useQuery({
+  type UIEvent = { id: number; title: string; eventType: string; startTime: string; location: string | null; description: string | null };
+  const { data: events = [], isLoading } = useQuery<UIEvent[]>({
     queryKey: [`/api/events/user/${userId}`],
     enabled: !!userId,
   });
@@ -137,8 +138,8 @@ export default function Calendar() {
             {calendarDays.map((day, index) => {
               const isCurrentMonth = day.getMonth() === currentMonth.getMonth();
               const isToday = day.toDateString() === new Date().toDateString();
-              const hasEvent = events.some((event: any) => 
-                new Date(event.date).toDateString() === day.toDateString()
+              const hasEvent = events.some((event) => 
+                new Date(event.startTime).toDateString() === day.toDateString()
               );
               
               return (
@@ -176,7 +177,7 @@ export default function Calendar() {
               <p className="text-muted-foreground text-sm">Start planning your next date by adding an event below</p>
             </div>
           ) : (
-            events.map((event: any) => (
+            events.map((event) => (
               <div key={event.id} className="glass-card rounded-2xl p-4">
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center">

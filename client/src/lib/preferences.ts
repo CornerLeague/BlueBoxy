@@ -156,7 +156,16 @@ export function getQuestionsByCategory(category: string): PreferenceQuestion[] {
 }
 
 export function getAllCategories(): string[] {
-  return [...new Set(preferenceQuestions.map(q => q.category))];
+  const categories = preferenceQuestions.map(q => q.category);
+  const seen: Record<string, boolean> = {};
+  const uniq: string[] = [];
+  for (const c of categories) {
+    if (!seen[c]) {
+      seen[c] = true;
+      uniq.push(c);
+    }
+  }
+  return uniq;
 }
 
 export function getScaleLabel(value: number, questionId: string): string {
