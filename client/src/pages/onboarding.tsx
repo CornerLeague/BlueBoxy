@@ -18,6 +18,7 @@ export default function Onboarding() {
   const [formData, setFormData] = useState({
     name: "",
     partnerName: "",
+    partnerAge: "",
     relationshipDuration: "",
     email: "",
     password: ""
@@ -37,6 +38,13 @@ export default function Onboarding() {
       field: "partnerName",
       placeholder: "Enter your partner's name",
       type: "text"
+    },
+    {
+      title: "How old is your partner?",
+      description: "We use age to tailor recommendations appropriately",
+      field: "partnerAge",
+      placeholder: "Enter your partner's age",
+      type: "number"
     },
     {
       title: "How long have you been together?",
@@ -136,6 +144,19 @@ export default function Onboarding() {
       }
     }
 
+    // Numeric validation for partnerAge
+    if (currentStepData.field === "partnerAge") {
+      const age = parseInt(currentValue, 10);
+      if (isNaN(age) || age < 13 || age > 120) {
+        toast({
+          title: "Invalid age",
+          description: "Please enter a valid age between 13 and 120.",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
     if (currentStep < steps.length - 1) {
       setCurrentStep(prev => prev + 1);
     } else {
@@ -145,6 +166,7 @@ export default function Onboarding() {
         email: formData.email,
         password: formData.password,
         partnerName: formData.partnerName,
+        partnerAge: formData.partnerAge ? parseInt(formData.partnerAge, 10) : undefined,
         relationshipDuration: formData.relationshipDuration
       });
     }

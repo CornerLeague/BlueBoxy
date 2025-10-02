@@ -67,7 +67,7 @@ export default function Profile() {
           </div>
           <div>
             <h3 className="text-lg font-semibold">{user.name}</h3>
-            <p className="text-muted-foreground">In a relationship for {user.relationshipDuration}</p>
+            <p className="text-muted-foreground">In a relationship for {user.relationshipDuration}{(user as any).partnerAge ? ` • Partner age ${(user as any).partnerAge}` : ""}</p>
           </div>
         </div>
         

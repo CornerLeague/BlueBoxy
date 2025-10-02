@@ -137,7 +137,7 @@ app.get("/api/auth/me", requireAuth(), ensureLocalUser, async (req: any, res) =>
   // Authentication routes - simplified without JWT (left for legacy flows; Clerk is primary)
   app.post("/api/auth/register", async (req, res) => {
     try {
-      const { email, password, name, partnerName, relationshipDuration } = req.body;
+      const { email, password, name, partnerName, relationshipDuration, partnerAge } = req.body;
       
       // Check if user already exists
       const existingUser = await storage.getUserByEmail(email);
@@ -154,6 +154,7 @@ app.get("/api/auth/me", requireAuth(), ensureLocalUser, async (req: any, res) =>
         name: name || "User",
         partnerName: partnerName || "",
         relationshipDuration: relationshipDuration || "",
+        partnerAge: partnerAge ? parseInt(partnerAge, 10) : null,
         personalityType: null,
         personalityInsight: null,
         preferences: null,
@@ -169,6 +170,7 @@ app.get("/api/auth/me", requireAuth(), ensureLocalUser, async (req: any, res) =>
           name: user.name,
           partnerName: user.partnerName,
           relationshipDuration: user.relationshipDuration,
+          partnerAge: (user as any).partnerAge,
           personalityType: user.personalityType,
           personalityInsight: user.personalityInsight,
           preferences: user.preferences,
@@ -247,6 +249,7 @@ app.get("/api/user/profile", resolveLocalUserSoft, async (req: any, res) => {
         email: user.email,
         partnerName: user.partnerName,
         relationshipDuration: user.relationshipDuration,
+        partnerAge: (user as any).partnerAge,
         personalityType: user.personalityType,
         personalityInsight,
         preferences: user.preferences,
@@ -312,8 +315,12 @@ app.post("/api/assessment/responses", resolveLocalUserSoft, async (req: any, res
   // User preferences route - secured; derive userId
 app.post("/api/user/preferences", resolveLocalUserSoft, async (req: any, res) => {
     try {
-      const { preferences, location } = req.body;
+      const { preferences, location, partnerAge } = req.body;
       const userId = req.localUser.id as number;
+      // If partnerAge provided, persist alongside preferences
+      if (partnerAge !== undefined) {
+        await storage.updateUser(userId, { partnerAge: parseInt(partnerAge, 10) } as any);
+      }
       const user = await storage.updateUserPreferences(userId, preferences, location);
       
       res.json({ 

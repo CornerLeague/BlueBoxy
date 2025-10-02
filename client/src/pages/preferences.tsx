@@ -26,6 +26,13 @@ export default function Preferences() {
   const [isGettingLocation, setIsGettingLocation] = useState(false);
   const [customInputs, setCustomInputs] = useState<Record<string, string>>({});
 
+  // Partner age (optional) state
+  const initialPartnerAge = (() => {
+    const u = JSON.parse(localStorage.getItem("userData") || "null");
+    return (u?.partnerAge && Number.isFinite(u.partnerAge)) ? Number(u.partnerAge) : '' as any;
+  })();
+  const [partnerAge, setPartnerAge] = useState<number | ''>(initialPartnerAge);
+
   const currentQuestion = preferenceQuestions[currentQuestionIndex];
   const isLastQuestion = currentQuestionIndex === preferenceQuestions.length - 1;
   const hasAnswered = (() => {
@@ -98,9 +105,15 @@ export default function Preferences() {
     setIsSubmitting(true);
     
     try {
+      // Validate partner age if provided
+      if (partnerAge !== '' && (partnerAge < 13 || partnerAge > 120)) {
+        throw new Error("Please enter a valid partner age between 13 and 120.");
+      }
+
       const preferencesData = {
         preferences: Object.values(responses),
-        location: userLocation
+        location: userLocation,
+        partnerAge: partnerAge === '' ? undefined : partnerAge
       };
 
       const userId = localStorage.getItem("userId");
@@ -117,7 +130,8 @@ export default function Preferences() {
           body: JSON.stringify({
             userId: parseInt(userId),
             preferences: responses,
-            location: userLocation
+            location: userLocation,
+            partnerAge: preferencesData.partnerAge
           })
         });
 
@@ -129,7 +143,8 @@ export default function Preferences() {
         const updatedUserData = {
           ...userData,
           preferences: responses,
-          location: userLocation
+          location: userLocation,
+          ...(preferencesData.partnerAge !== undefined ? { partnerAge: preferencesData.partnerAge } : {})
         };
         localStorage.setItem("userData", JSON.stringify(updatedUserData));
       } else {
@@ -396,6 +411,24 @@ export default function Preferences() {
           </div>
         </CardHeader>
         <CardContent className="space-y-6">
+          {/* Partner Age (optional) */}
+          <div className="space-y-2">
+            <Label htmlFor="partnerAge" className="text-sm">Partner age (optional)</Label>
+            <Input
+              id="partnerAge"
+              type="number"
+              min={13}
+              max={120}
+              placeholder="Enter partner age"
+              value={partnerAge as any}
+              onChange={(e) => {
+                const val = e.target.value;
+                setPartnerAge(val === '' ? '' : Math.max(0, parseInt(val, 10) || 0));
+              }}
+              className="bg-white/10 border-white/20 text-white placeholder:text-gray-400 w-40"
+            />
+          </div>
+
           <div>
             <CardTitle className="text-xl mb-4">
               {currentQuestion.question}

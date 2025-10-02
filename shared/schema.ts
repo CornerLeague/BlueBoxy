@@ -10,6 +10,7 @@ export const users = pgTable("users", {
   passwordHash: text("password_hash").notNull(),
   partnerName: text("partner_name"),
   relationshipDuration: text("relationship_duration"),
+  partnerAge: integer("partner_age"),
   personalityType: text("personality_type"),
   personalityInsight: jsonb("personality_insight"),
   preferences: jsonb("preferences"),
