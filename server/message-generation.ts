@@ -1,5 +1,12 @@
 import OpenAI from "openai";
 import type { User } from "@shared/schema";
+import {
+  getOpenAIClientOptions,
+  getOpenAIUserFacingError,
+  logOpenAIError,
+} from "./openai";
+
+const openai = new OpenAI(getOpenAIClientOptions());
 
 // Message Categories
 export const MESSAGE_CATEGORIES = {
@@ -75,9 +82,6 @@ export async function generatePersonalizedMessages(
   user: User
 ): Promise<MessageGenerationResponse> {
   try {
-    // Initialize OpenAI client with current environment variable
-    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-    
     const category = MESSAGE_CATEGORIES[request.category];
     const personalityType = user.personalityType || "Thoughtful Harmonizer";
     const personalityTrait = PERSONALITY_TYPES[personalityType as keyof typeof PERSONALITY_TYPES];
@@ -162,7 +166,7 @@ Generate messages that integrate these frameworks naturally, making the partner 
     };
 
   } catch (error: any) {
-    console.error("Error generating messages:", error);
+    logOpenAIError("generating personalized messages", error);
     // Do NOT provide generic messages. Return an error so the client can surface it.
     return {
       success: false,
@@ -172,7 +176,10 @@ Generate messages that integrate these frameworks naturally, making the partner 
         personalityType: user.personalityType || "Thoughtful Harmonizer",
         partnerName: user.partnerName || "your partner",
       },
-      error: error?.message || "Failed to generate messages. Please try again.",
+      error: getOpenAIUserFacingError(
+        error,
+        "Failed to generate messages. Please try again."
+      ),
     };
   }
 }
