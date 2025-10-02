@@ -1,12 +1,67 @@
-import OpenAI from "openai";
+import OpenAI, { type ClientOptions } from "openai";
 
-if (!process.env.OPENAI_API_KEY) {
-  throw new Error("OPENAI_API_KEY environment variable is required");
+export function getOpenAIClientOptions(): ClientOptions {
+  const apiKey = process.env.OPENAI_API_KEY;
+
+  if (!apiKey) {
+    throw new Error("OPENAI_API_KEY environment variable is required");
+  }
+
+  const options: ClientOptions = {
+    apiKey,
+  };
+
+  if (process.env.OPENAI_ORGANIZATION) {
+    options.organization = process.env.OPENAI_ORGANIZATION;
+  }
+
+  if (process.env.OPENAI_PROJECT_ID) {
+    options.project = process.env.OPENAI_PROJECT_ID;
+  }
+
+  return options;
 }
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+function isOpenAIUnauthorizedError(error: unknown): error is { status: number } {
+  return (
+    !!error &&
+    typeof error === "object" &&
+    "status" in error &&
+    typeof (error as any).status === "number" &&
+    (error as any).status === 401
+  );
+}
+
+export function logOpenAIError(context: string, error: unknown) {
+  if (isOpenAIUnauthorizedError(error)) {
+    console.error(
+      `OpenAI returned 401 Unauthorized while ${context}. ` +
+        "Verify that OPENAI_API_KEY is correct and, if you're using a project-scoped key (sk-proj-...), set OPENAI_PROJECT_ID to the associated project.",
+      error
+    );
+  } else {
+    console.error(`Error ${context}:`, error);
+  }
+}
+
+export function getOpenAIUserFacingError(error: unknown, fallbackMessage: string): string {
+  if (isOpenAIUnauthorizedError(error)) {
+    return "OpenAI rejected the API credentials. Verify OPENAI_API_KEY and, for project-scoped keys, OPENAI_PROJECT_ID.";
+  }
+
+  if (
+    error &&
+    typeof error === "object" &&
+    "message" in error &&
+    typeof (error as any).message === "string"
+  ) {
+    return (error as any).message;
+  }
+
+  return fallbackMessage;
+}
+
+const openai = new OpenAI(getOpenAIClientOptions());
 
 export interface PersonalityInsight {
   description: string;
@@ -60,7 +115,7 @@ Please respond with JSON in this exact format:
     const result = JSON.parse(response.choices[0].message.content || "{}");
     return result as PersonalityInsight;
   } catch (error) {
-    console.error("Error generating personality insight:", error);
+    logOpenAIError("generating personality insight", error);
     // Fallback insight
     return {
       description: `${partnerName} has a ${personalityType} personality and values meaningful connections.`,
@@ -114,7 +169,7 @@ Please respond with JSON in this format:
     const result = JSON.parse(response.choices[0].message.content || "{}");
     return result.messages || [];
   } catch (error) {
-    console.error("Error generating personalized messages:", error);
+    logOpenAIError("generating personalized messages", error);
     return [
       `Hey ${context.partnerName}, thinking of you and how much you mean to me! 💕`,
       `Just wanted to remind you how amazing you are, ${context.partnerName}. Hope you're having a great day!`,
@@ -171,7 +226,7 @@ Please respond with JSON in this format:
     const result = JSON.parse(response.choices[0].message.content || "{}");
     return result.activities || [];
   } catch (error) {
-    console.error("Error generating activity recommendations:", error);
+    logOpenAIError("generating activity recommendations", error);
     return [
       {
         title: "Cozy Movie Night",
@@ -233,7 +288,7 @@ Respond with JSON format:
     const result = JSON.parse(response.choices[0].message.content || "{}");
     return result.activities || [];
   } catch (error) {
-    console.error("Error generating location-based recommendations:", error);
+    logOpenAIError("generating location-based recommendations", error);
     // Return fallback recommendations if OpenAI fails
     return [
       {
@@ -341,7 +396,7 @@ Respond with JSON in this exact format:
     const result = JSON.parse(response.choices[0].message.content || "{}");
     return result;
   } catch (error) {
-    console.error("Error generating AI-powered recommendations:", error);
+    logOpenAIError("generating AI-powered recommendations", error);
     throw error;
   }
 }
