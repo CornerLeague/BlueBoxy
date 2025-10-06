@@ -22,54 +22,34 @@ import {
 } from "./message-generation";
 import { grokAIService } from "./grok-ai";
 import { calendarProviderManager } from "./calendar-providers";
-import { requireAuth, clerkClient } from "@clerk/express";
 
 // Remove JWT authentication - use simple session management
 
 export async function registerRoutes(app: Express) {
   
-  // Helper middleware: ensures a local user exists for the Clerk session and attaches it to req
+// Helper middleware: resolves a local user from request context
   const ensureLocalUser = async (req: any, res: any, next: any) => {
     try {
-      const { userId: clerkUserId } = req.auth || {};
-      if (!clerkUserId) return res.status(401).json({ error: "Unauthorized" });
-
-      const clerkUser = await clerkClient.users.getUser(clerkUserId);
-      const email = clerkUser.emailAddresses?.[0]?.emailAddress || `${clerkUserId}@clerk.local`;
-      const name = [clerkUser.firstName, clerkUser.lastName].filter(Boolean).join(" ") || clerkUser.username || "User";
-
-      let user = await storage.getUserByEmail(email);
-      if (!user) {
-        user = await storage.createUser({
-          email,
-          name,
-          passwordHash: "clerk",
-          partnerName: null,
-          relationshipDuration: null,
-          personalityType: null,
-          personalityInsight: null,
-          preferences: null,
-          location: null,
-        } as any);
+      const candidate = (req.body?.userId ?? req.query?.userId ?? (req.params && (req.params as any).userId) ?? req.headers['x-user-id']) as any;
+      const parsed = typeof candidate === 'string' ? parseInt(candidate, 10) : candidate;
+      if (parsed && !Number.isNaN(parsed)) {
+        const user = await storage.getUser(parsed);
+        if (user) {
+          req.localUser = user;
+          return next();
+        }
       }
-
-      req.localUser = user;
-      next();
+      return res.status(401).json({ error: "Unauthorized" });
     } catch (err) {
       console.error("ensureLocalUser error:", err);
       res.status(500).json({ error: "Failed to resolve local user" });
     }
   };
 
-  // Soft resolver: tries Clerk; if missing, falls back to userId in body/query
+// Soft resolver: derive local user purely from request
   const resolveLocalUserSoft = async (req: any, res: any, next: any) => {
     try {
-      const { userId: clerkUserId } = req.auth || {};
-      if (clerkUserId) {
-        return await ensureLocalUser(req, res, next);
-      }
-      // Fallback for legacy flows (temporary during migration)
-      const candidate = (req.body?.userId ?? req.query?.userId ?? req.headers['x-user-id']) as any;
+      const candidate = (req.body?.userId ?? req.query?.userId ?? (req.params && (req.params as any).userId) ?? req.headers['x-user-id']) as any;
       const parsed = typeof candidate === 'string' ? parseInt(candidate, 10) : candidate;
       if (parsed && !Number.isNaN(parsed)) {
         const user = await storage.getUser(parsed);
@@ -85,56 +65,28 @@ export async function registerRoutes(app: Express) {
     }
   };
 
-  // Clerk-authenticated endpoint: returns Clerk identity and ensures a local user exists
-app.get("/api/auth/me", requireAuth(), ensureLocalUser, async (req: any, res) => {
+// Simple auth resolver for legacy/local auth: fetch by userId
+  app.get("/api/auth/me", ensureLocalUser, async (req: any, res) => {
     try {
-      const { userId } = req.auth || {};
-      if (!userId) {
-        return res.status(401).json({ error: "Unauthorized" });
-      }
-
-      // Fetch Clerk user to get email/name
-      const clerkUser = await clerkClient.users.getUser(userId);
-      const email = clerkUser.emailAddresses?.[0]?.emailAddress || `${userId}@clerk.local`;
-      const name = [clerkUser.firstName, clerkUser.lastName].filter(Boolean).join(" ") || clerkUser.username || "User";
-
-      // Find or create local user by email
-      let user = await storage.getUserByEmail(email);
-      if (!user) {
-        user = await storage.createUser({
-          email,
-          name,
-          passwordHash: "clerk", // placeholder for external auth users
-          partnerName: null,
-          relationshipDuration: null,
-          personalityType: null,
-          personalityInsight: null,
-          preferences: null,
-          location: null,
-        } as any);
-      }
-
-      return res.json({
-        clerk: { userId, email, name },
-        user: {
-          id: user.id,
-          email: user.email,
-          name: user.name,
-          partnerName: user.partnerName,
-          relationshipDuration: user.relationshipDuration,
-          personalityType: user.personalityType,
-          personalityInsight: user.personalityInsight,
-          preferences: user.preferences,
-          location: user.location,
-        },
-      });
+      const user = req.localUser;
+      return res.json({ user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        partnerName: user.partnerName,
+        relationshipDuration: user.relationshipDuration,
+        personalityType: user.personalityType,
+        personalityInsight: user.personalityInsight,
+        preferences: user.preferences,
+        location: user.location,
+      }});
     } catch (error: any) {
       console.error("/api/auth/me error:", error);
       return res.status(500).json({ error: "Failed to fetch authenticated user" });
     }
   });
 
-  // Authentication routes - simplified without JWT (left for legacy flows; Clerk is primary)
+  // Authentication routes - simplified without JWT (local auth is primary)
   app.post("/api/auth/register", async (req, res) => {
     try {
       const { email, password, name, partnerName, relationshipDuration, partnerAge } = req.body;
@@ -217,30 +169,31 @@ app.get("/api/auth/me", requireAuth(), ensureLocalUser, async (req: any, res) =>
     }
   });
 
-  // User profile route - secured with Clerk; uses local userId from session
-app.get("/api/user/profile", resolveLocalUserSoft, async (req: any, res) => {
+  // User profile route
+  app.get("/api/user/profile", resolveLocalUserSoft, async (req: any, res) => {
     try {
       const userId = req.localUser.id as number;
-      const user = await storage.getUser(userId);
+      let user = await storage.getUser(userId);
       
       if (!user) {
         return res.status(404).json({ error: "User not found" });
       }
 
-      // If user has completed assessment, generate personality insights
+      // Ensure personalityType reflects the most recent assessment (self-healing)
+      const latestAssessment = await storage.getAssessmentByUserId(userId);
+      if (latestAssessment?.personalityType && latestAssessment.personalityType !== user.personalityType) {
+        user = await storage.updateUser(userId, { personalityType: latestAssessment.personalityType } as any);
+      }
+
+      // If personalityType exists but no stored insight, generate it lazily
       let personalityInsight = user.personalityInsight;
-      if (user.personalityType && !personalityInsight) {
-        const assessment = await storage.getAssessmentByUserId(userId);
-        if (assessment) {
-          personalityInsight = await generatePersonalityInsight(
-            user.personalityType,
-            user.partnerName || "",
-            assessment.responses as Record<string, string>
-          );
-          
-          // Save generated insight to user profile
-          await storage.updateUser(userId, { personalityInsight });
-        }
+      if (user.personalityType && !personalityInsight && latestAssessment) {
+        personalityInsight = await generatePersonalityInsight(
+          user.personalityType,
+          user.partnerName || "",
+          latestAssessment.responses as Record<string, string>
+        );
+        await storage.updateUser(userId, { personalityInsight });
       }
       
       res.json({
@@ -261,7 +214,7 @@ app.get("/api/user/profile", resolveLocalUserSoft, async (req: any, res) => {
     }
   });
 
-  // Assessment routes - secured; derive userId from Clerk session
+  // Assessment routes - secured; derive userId from local request context
 app.post("/api/assessment/responses", resolveLocalUserSoft, async (req: any, res) => {
     try {
       const { responses, personalityType } = req.body;
@@ -350,7 +303,7 @@ app.post("/api/user/preferences", resolveLocalUserSoft, async (req: any, res) =>
   });
 
   // Recommendations: activities - secured; derive userId
-app.get("/api/recommendations/activities", requireAuth(), ensureLocalUser, async (req: any, res) => {
+app.get("/api/recommendations/activities", resolveLocalUserSoft, async (req: any, res) => {
     try {
       const userId = req.localUser.id as number;
       const user = await storage.getUser(userId);
@@ -377,7 +330,7 @@ app.get("/api/recommendations/activities", requireAuth(), ensureLocalUser, async
     }
   });
 
-app.get("/api/recommendations/location-based", requireAuth(), ensureLocalUser, async (req: any, res) => {
+app.get("/api/recommendations/location-based", resolveLocalUserSoft, async (req: any, res) => {
     try {
       const userId = req.localUser.id as number;
       const { radius = 25 } = req.query;
@@ -417,7 +370,7 @@ app.get("/api/recommendations/location-based", requireAuth(), ensureLocalUser, a
   });
 
   // New Grok AI Location-Based Recommendation Endpoints
-app.post("/api/recommendations/location-based", requireAuth(), ensureLocalUser, async (req: any, res) => {
+app.post("/api/recommendations/location-based", resolveLocalUserSoft, async (req: any, res) => {
     try {
       const { location, radius, category, preferences, personalityType, resetAlgorithm } = req.body;
       const userId = req.localUser.id as number;
@@ -456,7 +409,7 @@ app.post("/api/recommendations/location-based", requireAuth(), ensureLocalUser, 
     }
   });
 
-app.post("/api/recommendations/drinks", requireAuth(), ensureLocalUser, async (req: any, res) => {
+app.post("/api/recommendations/drinks", resolveLocalUserSoft, async (req: any, res) => {
     try {
       const { location, radius, drinkPreferences, personalityType, resetAlgorithm } = req.body;
       const userId = req.localUser.id as number;
@@ -524,7 +477,7 @@ app.post("/api/recommendations/drinks", requireAuth(), ensureLocalUser, async (r
   });
 
   // Update user preferences endpoint to include drink preferences
-app.put("/api/user/preferences", requireAuth(), ensureLocalUser, async (req: any, res) => {
+app.put("/api/user/preferences", resolveLocalUserSoft, async (req: any, res) => {
     try {
       const { preferences } = req.body;
       const userId = req.localUser.id as number;
@@ -553,7 +506,7 @@ app.put("/api/user/preferences", requireAuth(), ensureLocalUser, async (req: any
   });
 
   // Calendar Provider Routes
-app.get("/api/calendar/providers", requireAuth(), ensureLocalUser, async (req: any, res) => {
+app.get("/api/calendar/providers", resolveLocalUserSoft, async (req: any, res) => {
     try {
       const userId = String(req.localUser.id);
       const providers = await calendarProviderManager.getProviders(userId);
@@ -564,7 +517,7 @@ app.get("/api/calendar/providers", requireAuth(), ensureLocalUser, async (req: a
     }
   });
 
-app.post("/api/calendar/connect/:providerId", requireAuth(), ensureLocalUser, async (req: any, res) => {
+app.post("/api/calendar/connect/:providerId", resolveLocalUserSoft, async (req: any, res) => {
     try {
       const { providerId } = req.params;
       const userId = String(req.localUser.id);
@@ -636,7 +589,7 @@ app.post("/api/calendar/connect/:providerId", requireAuth(), ensureLocalUser, as
     }
   });
 
-app.get("/api/calendar/events/:providerId", requireAuth(), ensureLocalUser, async (req: any, res) => {
+app.get("/api/calendar/events/:providerId", resolveLocalUserSoft, async (req: any, res) => {
     try {
       const { providerId } = req.params;
       const { startDate, endDate } = req.query;
@@ -656,7 +609,7 @@ app.get("/api/calendar/events/:providerId", requireAuth(), ensureLocalUser, asyn
   });
 
   // User events route - return user's calendar events from database
-app.get("/api/events/user/:userId", requireAuth(), ensureLocalUser, async (req: any, res) => {
+app.get("/api/events/user/:userId", resolveLocalUserSoft, async (req: any, res) => {
     try {
       const localUserId = req.localUser.id as number;
       const events = await storage.getUserEvents(localUserId);
@@ -668,7 +621,7 @@ app.get("/api/events/user/:userId", requireAuth(), ensureLocalUser, async (req: 
   });
 
   // Create new event route
-app.post("/api/events", requireAuth(), ensureLocalUser, async (req: any, res) => {
+app.post("/api/events", resolveLocalUserSoft, async (req: any, res) => {
     try {
       const injected = { ...req.body, userId: req.localUser.id };
       const eventData = insertCalendarEventSchema.parse(injected);
@@ -686,8 +639,27 @@ app.post("/api/events", requireAuth(), ensureLocalUser, async (req: any, res) =>
     }
   });
 
+  // Delete event route
+  app.delete("/api/events/:eventId", resolveLocalUserSoft, async (req: any, res) => {
+    try {
+      const userId = req.localUser.id as number;
+      const eventId = parseInt(req.params.eventId, 10);
+      if (isNaN(eventId)) return res.status(400).json({ error: "Invalid event id" });
+
+      const deleted = await storage.deleteEvent(eventId, userId);
+      if (!deleted) {
+        return res.status(404).json({ error: "Event not found" });
+      }
+      await storage.decrementEventsCreated(userId, 1);
+      return res.json({ success: true });
+    } catch (error: any) {
+      console.error("Error deleting event:", error);
+      res.status(500).json({ error: "Failed to delete event" });
+    }
+  });
+
   // User statistics routes
-app.get("/api/user/stats/:userId", requireAuth(), ensureLocalUser, async (req: any, res) => {
+app.get("/api/user/stats/:userId", resolveLocalUserSoft, async (req: any, res) => {
     try {
       const userId = req.localUser.id as number;
       const stats = await storage.getUserStats(userId);
@@ -706,7 +678,7 @@ app.get("/api/user/stats/:userId", requireAuth(), ensureLocalUser, async (req: a
 
 
   // AI-powered recommendations endpoint
-app.post("/api/recommendations/ai-powered", requireAuth(), ensureLocalUser, async (req: any, res) => {
+app.post("/api/recommendations/ai-powered", resolveLocalUserSoft, async (req: any, res) => {
     try {
       const { category, location, preferences } = req.body;
       

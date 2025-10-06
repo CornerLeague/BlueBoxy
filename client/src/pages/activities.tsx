@@ -40,6 +40,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@/components/ui/select";
 
 // Activity categories with specialized icons and colors
 const activityCategories = [
@@ -276,7 +277,9 @@ export default function Activities() {
       return await apiRequest("POST", "/api/events", eventData);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/events/user", userId] });
+      queryClient.invalidateQueries({ queryKey: [
+        `/api/events/user/${userId}`,
+      ] });
       queryClient.invalidateQueries({ queryKey: ["/api/user/stats", userId] });
       toast({
         title: "Event Scheduled!",
@@ -302,6 +305,21 @@ export default function Activities() {
     setSelectedActivity(activity);
     setIsScheduleModalOpen(true);
   };
+
+  // Build 12-hour time options (every 30 minutes)
+  const timeOptions = (() => {
+    const opts: { value: string; label: string }[] = [];
+    for (let h = 0; h < 24; h++) {
+      for (let m = 0; m < 60; m += 30) {
+        const value = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+        const period = h >= 12 ? 'PM' : 'AM';
+        const h12 = h % 12 === 0 ? 12 : h % 12;
+        const label = `${h12}:${String(m).padStart(2, '0')} ${period}`;
+        opts.push({ value, label });
+      }
+    }
+    return opts;
+  })();
 
   // Handle schedule submission
   const handleScheduleSubmit = () => {
@@ -675,13 +693,21 @@ export default function Activities() {
             
             <div className="space-y-2">
               <Label htmlFor="time">Time</Label>
-              <Input
-                id="time"
-                type="time"
+              <Select
                 value={schedulingData.time}
-                onChange={(e) => setSchedulingData(prev => ({ ...prev, time: e.target.value }))}
-                className="glass-card"
-              />
+                onValueChange={(val) => setSchedulingData(prev => ({ ...prev, time: val }))}
+              >
+                <SelectTrigger className="glass-card">
+                  <SelectValue placeholder="Select time" />
+                </SelectTrigger>
+                <SelectContent>
+                  {timeOptions.map(({ value, label }) => (
+                    <SelectItem key={value} value={value}>
+                      {label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             
             <div className="space-y-2">

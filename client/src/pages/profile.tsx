@@ -154,7 +154,7 @@ export default function Profile() {
       <div className="space-y-3">
         <button 
           className="w-full control-btn p-4 rounded-2xl flex items-center justify-between border-0 hover:bg-[var(--hover-subtle)] hover:text-[var(--hover-text)] transition-colors"
-          onClick={() => setLocation("/assessment")}
+          onClick={() => setLocation("/assessment?retake=1")}
         >
           <div className="flex items-center">
             <RefreshCw className="w-5 h-5 mr-3" />

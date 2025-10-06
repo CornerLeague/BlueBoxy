@@ -1,14 +1,24 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
-import { clerkMiddleware } from "@clerk/express";
 
 const app = express();
+
+// Disable ETag to avoid 304 on JSON API responses after updates
+app.set("etag", false);
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
-// Attach Clerk auth to expose req.auth for APIs; disable handshake so SPA routing isn't intercepted
-app.use(clerkMiddleware({ enableHandshake: false }));
+// Ensure API responses are never cached by the browser
+app.use((req, res, next) => {
+  if (req.path.startsWith("/api")) {
+    res.set("Cache-Control", "no-store");
+    res.set("Pragma", "no-cache");
+    res.set("Expires", "0");
+  }
+  next();
+});
 
 app.use((req, res, next) => {
   const start = Date.now();
@@ -42,6 +52,17 @@ app.use((req, res, next) => {
 
 (async () => {
   const server = await registerRoutes(app);
+
+  // Periodically clean up expired events (>1 hour past end time)
+  setInterval(async () => {
+    try {
+      const removed = await import("./storage").then(m => m.storage.cleanupExpiredEvents());
+      // Optionally log minimal info
+      // console.log("Expired events cleanup:", removed);
+    } catch (e) {
+      // ignore
+    }
+  }, 5 * 60 * 1000);
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;

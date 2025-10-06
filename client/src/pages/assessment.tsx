@@ -1,11 +1,12 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
+import { useNavigationHistory } from "@/hooks/useNavigationHistory";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { determinePersonalityType } from "@/lib/personality-types";
@@ -68,18 +69,24 @@ export default function Assessment() {
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [responses, setResponses] = useState<Record<number, string>>({});
   const [, setLocation] = useLocation();
+  const { goBack } = useNavigationHistory();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   const userId = localStorage.getItem("userId");
   const userData = JSON.parse(localStorage.getItem("userData") || "null");
+
+  // Detect retake mode via query param
+  const searchParams = new URLSearchParams(window.location.search);
+  const isRetake = searchParams.get("retake") === "1";
   
-  // Redirect to dashboard if user already has completed assessment
+  // Redirect to dashboard if user already has completed assessment, unless retaking
   const isAuthenticated = localStorage.getItem("isAuthenticated") === "true";
   useEffect(() => {
-    if (isAuthenticated && userData && userData.personalityType) {
+    if (!isRetake && isAuthenticated && userData && userData.personalityType) {
       setLocation("/dashboard");
     }
-  }, [isAuthenticated, userData, setLocation]);
+  }, [isRetake, isAuthenticated, userData, setLocation]);
 
   const saveAssessmentMutation = useMutation({
     mutationFn: async (assessmentData: any) => {
@@ -132,7 +139,22 @@ export default function Assessment() {
         return guestResults;
       }
     },
-    onSuccess: (data) => {
+    onSuccess: (data, variables) => {
+      // Update cached profile so UI reflects the new personality type immediately
+      const uid = localStorage.getItem("userId");
+      if (uid) {
+        queryClient.setQueryData<any>(["/api/user/profile", uid], (prev) => {
+          if (!prev) return prev;
+          return {
+            ...prev,
+            personalityType: variables?.personalityType || prev.personalityType,
+          };
+        });
+        // Request a fresh profile from the server as well
+        queryClient.invalidateQueries({ queryKey: ["/api/user/profile", uid] });
+        queryClient.invalidateQueries({ queryKey: ["/api/assessments/user/" + uid] });
+      }
+
       toast({
         title: "Assessment Complete!",
         description: "Your personality analysis is ready! View your personalized recommendations.",
@@ -247,7 +269,7 @@ export default function Assessment() {
       <div className="mb-6">
         <div className="flex items-center mb-4">
           <button 
-            onClick={() => setLocation("/")}
+            onClick={() => goBack()}
             className="mr-4 p-2 rounded-full bg-secondary"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

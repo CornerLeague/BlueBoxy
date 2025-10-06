@@ -25,7 +25,7 @@ export type InsertCalendarEvent = InferInsertModel<typeof calendarEvents>;
 export type UserStats = InferSelectModel<typeof userStats>;
 export type InsertUserStats = InferInsertModel<typeof userStats>;
 import { db } from "./db";
-import { eq, and, desc, asc } from "drizzle-orm";
+import { eq, and, desc, asc, lt } from "drizzle-orm";
 
 export interface IStorage {
   // User management
@@ -47,10 +47,13 @@ export interface IStorage {
   // Calendar Events
   getUserEvents(userId: number): Promise<CalendarEvent[]>;
   createEvent(event: InsertCalendarEvent): Promise<CalendarEvent>;
+  deleteEvent(eventId: number, userId: number): Promise<boolean>;
+  cleanupExpiredEvents(): Promise<Record<number, number>>; // returns userId->removedCount
   
   // User Statistics
   getUserStats(userId: number): Promise<UserStats | undefined>;
   incrementEventsCreated(userId: number): Promise<UserStats>;
+  decrementEventsCreated(userId: number, by?: number): Promise<UserStats>;
 }
 
 export class MemStorage implements IStorage {
@@ -189,9 +192,21 @@ export class MemStorage implements IStorage {
   }
 
   async getAssessmentByUserId(userId: number): Promise<AssessmentResponse | undefined> {
-    return Array.from(this.assessmentResponses.values()).find(
-      response => response.userId === userId
-    );
+    // Return most recent by completedAt then id
+    let latest: AssessmentResponse | undefined = undefined;
+    for (const res of this.assessmentResponses.values()) {
+      if (res.userId !== userId) continue;
+      if (!latest) {
+        latest = res;
+      } else {
+        const at = new Date((res as any).completedAt).getTime();
+        const bt = new Date((latest as any).completedAt).getTime();
+        if (at > bt || (at === bt && (res as any).id > (latest as any).id)) {
+          latest = res as any;
+        }
+      }
+    }
+    return latest;
   }
 
   // Legacy recommendation methods removed - not in current schema
@@ -253,6 +268,13 @@ export class MemStorage implements IStorage {
     return newEvent;
   }
 
+  async deleteEvent(eventId: number, userId: number): Promise<boolean> {
+    const ev = this.calendarEvents.get(eventId);
+    if (!ev || ev.userId !== userId) return false;
+    this.calendarEvents.delete(eventId);
+    return true;
+  }
+
   async getUserStats(userId: number): Promise<UserStats | undefined> {
     return this.userStatsMap.get(userId);
   }
@@ -276,6 +298,45 @@ export class MemStorage implements IStorage {
     }
     this.userStatsMap.set(userId, stats);
     return stats;
+  }
+
+  async decrementEventsCreated(userId: number, by: number = 1): Promise<UserStats> {
+    let stats = this.userStatsMap.get(userId);
+    if (!stats) {
+      stats = {
+        id: this.currentStatsId++,
+        userId,
+        eventsCreated: 0,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      };
+    } else {
+      stats = {
+        ...stats,
+        eventsCreated: Math.max(0, (stats.eventsCreated ?? 0) - by),
+        updatedAt: new Date()
+      };
+    }
+    this.userStatsMap.set(userId, stats);
+    return stats;
+  }
+
+  async cleanupExpiredEvents(): Promise<Record<number, number>> {
+    const cutoff = Date.now() - 60 * 60 * 1000; // 1 hour ago
+    const removedCount: Record<number, number> = {};
+    for (const entry of Array.from(this.calendarEvents.entries())) {
+      const [id, ev] = entry;
+      const end = (ev as any).endTime?.getTime ? (ev as any).endTime.getTime() : new Date((ev as any).endTime).getTime();
+      if (end < cutoff) {
+        this.calendarEvents.delete(id);
+        removedCount[ev.userId] = (removedCount[ev.userId] || 0) + 1;
+      }
+    }
+    // Apply decrements
+    for (const [uidStr, count] of Object.entries(removedCount)) {
+      await this.decrementEventsCreated(parseInt(uidStr, 10), count);
+    }
+    return removedCount;
   }
 }
 
@@ -362,10 +423,16 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getAssessmentByUserId(userId: number): Promise<AssessmentResponse | undefined> {
+    // Return the most recent assessment for the user (stable ordering)
     const [assessment] = await db
       .select()
       .from(assessmentResponses)
-      .where(eq(assessmentResponses.userId, userId));
+      .where(eq(assessmentResponses.userId, userId))
+      .orderBy(
+        desc(assessmentResponses.completedAt),
+        desc(assessmentResponses.id),
+      )
+      .limit(1);
     return assessment || undefined;
   }
 
@@ -391,6 +458,14 @@ export class DatabaseStorage implements IStorage {
     return newEvent;
   }
 
+  async deleteEvent(eventId: number, userId: number): Promise<boolean> {
+    const [deleted] = await db
+      .delete(calendarEvents)
+      .where(and(eq(calendarEvents.id, eventId), eq(calendarEvents.userId, userId)))
+      .returning({ id: calendarEvents.id });
+    return !!deleted;
+  }
+
   async getUserStats(userId: number): Promise<UserStats | undefined> {
     try {
       const [stats] = await db
@@ -402,6 +477,41 @@ export class DatabaseStorage implements IStorage {
       console.error("Error getting user stats:", error);
       return undefined;
     }
+  }
+
+  async decrementEventsCreated(userId: number, by: number = 1): Promise<UserStats> {
+    const existing = await this.getUserStats(userId);
+    if (!existing) {
+      const [newStats] = await db
+        .insert(userStats)
+        .values({ userId, eventsCreated: 0 })
+        .returning();
+      return newStats;
+    }
+    const newValue = Math.max(0, (existing.eventsCreated ?? 0) - by);
+    const [updated] = await db
+      .update(userStats)
+      .set({ eventsCreated: newValue, updatedAt: new Date() })
+      .where(eq(userStats.userId, userId))
+      .returning();
+    return updated;
+  }
+
+  async cleanupExpiredEvents(): Promise<Record<number, number>> {
+    const cutoff = new Date(Date.now() - 60 * 60 * 1000);
+    const deleted = await db
+      .delete(calendarEvents)
+      .where(lt(calendarEvents.endTime, cutoff))
+      .returning({ userId: calendarEvents.userId });
+
+    const counts: Record<number, number> = {};
+    for (const row of deleted) {
+      counts[row.userId] = (counts[row.userId] || 0) + 1;
+    }
+    for (const [uidStr, count] of Object.entries(counts)) {
+      await this.decrementEventsCreated(parseInt(uidStr, 10), count);
+    }
+    return counts;
   }
 
 
@@ -567,10 +677,24 @@ class LocalStorageStorage implements IStorage {
   }
   
   async getAssessmentByUserId(userId: number): Promise<AssessmentResponse | undefined> {
+    // Return most recent by completedAt then id
+    let latest: AssessmentResponse | undefined;
     for (const assessment of this.storage.assessments.values()) {
-      if (assessment.userId === userId) return assessment;
+      if (assessment.userId !== userId) continue;
+      if (!latest) {
+        latest = assessment;
+      } else {
+        const at = new Date(assessment.completedAt).getTime();
+        const bt = new Date(latest.completedAt).getTime();
+        // For in-memory, use id if available to break ties
+        const aid = (assessment as any).id ?? 0;
+        const bid = (latest as any).id ?? 0;
+        if (at > bt || (at === bt && aid > bid)) {
+          latest = assessment;
+        }
+      }
     }
-    return undefined;
+    return latest;
   }
   
   async getActivities(): Promise<Activity[]> {
@@ -631,6 +755,29 @@ class LocalStorageStorage implements IStorage {
     return newEvent;
   }
 
+  async deleteEvent(eventId: number, userId: number): Promise<boolean> {
+    const ev = this.storage.events.get(eventId);
+    if (!ev || ev.userId !== userId) return false;
+    this.storage.events.delete(eventId);
+    return true;
+  }
+
+  async cleanupExpiredEvents(): Promise<Record<number, number>> {
+    const cutoff = Date.now() - 60 * 60 * 1000;
+    const removed: Record<number, number> = {};
+    for (const [id, ev] of this.storage.events.entries()) {
+      const end = (ev as any).endTime?.getTime ? (ev as any).endTime.getTime() : new Date((ev as any).endTime).getTime();
+      if (end < cutoff) {
+        this.storage.events.delete(id);
+        removed[ev.userId] = (removed[ev.userId] || 0) + 1;
+      }
+    }
+    for (const [uidStr, count] of Object.entries(removed)) {
+      await this.decrementEventsCreated(parseInt(uidStr, 10), count);
+    }
+    return removed;
+  }
+
   async getUserStats(userId: number): Promise<UserStats | undefined> {
     return this.storage.userStats?.get(userId);
   }
@@ -658,6 +805,30 @@ class LocalStorageStorage implements IStorage {
       };
     }
     
+    this.storage.userStats.set(userId, stats);
+    return stats;
+  }
+
+  async decrementEventsCreated(userId: number, by: number = 1): Promise<UserStats> {
+    if (!this.storage.userStats) {
+      this.storage.userStats = new Map();
+    }
+    let stats = this.storage.userStats.get(userId);
+    if (!stats) {
+      stats = {
+        id: this.storage.currentStatsId++,
+        userId,
+        eventsCreated: 0,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      };
+    } else {
+      stats = {
+        ...stats,
+        eventsCreated: Math.max(0, stats.eventsCreated - by),
+        updatedAt: new Date()
+      };
+    }
     this.storage.userStats.set(userId, stats);
     return stats;
   }

@@ -1,16 +1,20 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Plus, Clock, ChevronLeft, ChevronRight, Calendar as CalendarIcon } from "lucide-react";
 import { CalendarProviders } from "@/components/calendar-providers";
+import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 
 
 
 export default function Calendar() {
   const [, setLocation] = useLocation();
   const [currentMonth, setCurrentMonth] = useState(new Date());
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
   const [showProviders, setShowProviders] = useState(false);
   const userId = localStorage.getItem("userId");
 
@@ -184,7 +188,39 @@ export default function Calendar() {
                     <div className={`w-3 h-3 ${getEventTypeColor(event.eventType)} rounded-full mr-3 shadow-lg`}></div>
                     <span className="font-semibold">{event.title}</span>
                   </div>
-                  <span className="text-muted-foreground text-sm font-medium">{getRelativeDate(event.startTime)}</span>
+                  <div className="flex items-center space-x-3">
+                    <span className="text-muted-foreground text-sm font-medium">{getRelativeDate(event.startTime)}</span>
+                    <button
+                      onClick={async () => {
+                        try {
+                          await apiRequest('DELETE', `/api/events/${event.id}`);
+                          const uid = localStorage.getItem('userId');
+                          if (uid) {
+                            // Optimistically decrement the counter in cache for instant UI feedback
+                            queryClient.setQueryData<any>(["/api/user/stats", uid], (prev) => {
+                              if (!prev) return prev;
+                              return {
+                                ...prev,
+                                eventsCreated: Math.max(0, (prev.eventsCreated || 0) - 1),
+                              };
+                            });
+                            // Refresh events list and stats from server
+                            queryClient.invalidateQueries({ queryKey: [`/api/events/user/${uid}`] });
+                            queryClient.invalidateQueries({ queryKey: ["/api/user/stats", uid] });
+                          }
+                          toast({ title: 'Event deleted' });
+                        } catch (e: any) {
+                          console.error('Failed to delete event', e);
+                          toast({ title: 'Delete failed', description: e?.message || 'Please try again.', variant: 'destructive' });
+                        }
+                      }}
+                      aria-label="Delete event"
+                      className="text-red-400 hover:text-red-500"
+                      title="Delete"
+                    >
+                      ×
+                    </button>
+                  </div>
                 </div>
                 <p className="text-muted-foreground text-sm mb-2">
                   {formatDate(event.startTime)} at {formatTime(event.startTime)}
